@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth';
 import { redirect, notFound } from 'next/navigation';
 import sql from '@/lib/db';
 import ModuleClient from '@/components/ModuleClient';
+import ImmersivePdfModule from '@/components/ImmersivePdfModule';
 
 export default async function ModulePage({ params }: { params: { id: string } }) {
   const session = await getSession();
@@ -12,6 +13,20 @@ export default async function ModulePage({ params }: { params: { id: string } })
   if (!modules.length) notFound();
 
   const moduleData = modules[0];
+
+  // Check if this is the "Acelerador de Resultados" or "Sexflix" module
+  const isImmersivePdf = 
+    moduleData.title?.toLowerCase().includes('acelerador') ||
+    moduleData.title?.toLowerCase().includes('sexflix') ||
+    moduleData.position === 6;
+
+  if (isImmersivePdf) {
+    return (
+      <ImmersivePdfModule
+        user={{ name: session.name, email: session.email, isAdmin: session.isAdmin }}
+      />
+    );
+  }
 
   const lessons = await sql`
     SELECT l.*,
