@@ -4,6 +4,7 @@ import { redirect, notFound } from 'next/navigation';
 import sql from '@/lib/db';
 import ModuleClient from '@/components/ModuleClient';
 import ImmersivePdfModule from '@/components/ImmersivePdfModule';
+import ImmersiveSecretosModule from '@/components/ImmersiveSecretosModule';
 
 export default async function ModulePage({ params }: { params: { id: string } }) {
   const session = await getSession();
@@ -15,14 +16,27 @@ export default async function ModulePage({ params }: { params: { id: string } })
   const moduleData = modules[0];
 
   // Check if this is the "Acelerador de Resultados" or "Sexflix" module
-  const isImmersivePdf = 
+  const isAcelerador = 
     moduleData.title?.toLowerCase().includes('acelerador') ||
     moduleData.title?.toLowerCase().includes('sexflix') ||
     moduleData.position === 6;
 
-  if (isImmersivePdf) {
+  if (isAcelerador) {
     return (
       <ImmersivePdfModule
+        user={{ name: session.name, email: session.email, isAdmin: session.isAdmin }}
+      />
+    );
+  }
+
+  // Check if this is the "Secretos Sexuales" module
+  const isSecretos =
+    moduleData.title?.toLowerCase().includes('secretos') ||
+    moduleData.title?.toLowerCase().includes('secretos sexuales');
+
+  if (isSecretos) {
+    return (
+      <ImmersiveSecretosModule
         user={{ name: session.name, email: session.email, isAdmin: session.isAdmin }}
       />
     );
