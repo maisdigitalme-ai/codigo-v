@@ -47,16 +47,15 @@ export default function DashboardClient({ modules, user }: { modules: Module[]; 
       >
         <div className="flex items-center justify-between px-4 py-3 max-w-6xl mx-auto">
           {/* Logo */}
-          <div className="flex items-center gap-3">
-            <div
-              className="flex items-center justify-center w-9 h-9 rounded-lg"
-              style={{ background: 'rgba(230,57,70,0.15)', border: '1px solid rgba(230,57,70,0.3)' }}
-            >
-              <span style={{ fontFamily: 'var(--font-playfair)', color: '#E63946', fontWeight: 700, fontSize: '18px' }}>V</span>
-            </div>
-            <span style={{ fontFamily: 'var(--font-playfair)', fontWeight: 700, fontSize: '18px', color: 'white' }}>
-              Código V
-            </span>
+          <div className="flex items-center gap-2">
+            <Image
+              src="https://d2xsxph8kpxj0f.cloudfront.net/310519663514395106/RNwrdS82oyF4Jnnd33FcWg/logo_9ceef770.png"
+              alt="Código V"
+              width={120}
+              height={59}
+              style={{ objectFit: 'contain' }}
+              priority
+            />
           </div>
 
           {/* User Menu */}
@@ -116,51 +115,40 @@ export default function DashboardClient({ modules, user }: { modules: Module[]; 
         </div>
       </header>
 
-      {/* Hero Banner */}
-      <div
-        className="relative overflow-hidden"
-        style={{
-          background: 'linear-gradient(135deg, #1a0505 0%, #0A0A0A 60%)',
-          borderBottom: '1px solid #222',
-        }}
-      >
-        <div className="max-w-6xl mx-auto px-4 py-10 md:py-14">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      {/* Hero Banner - Banner real do Código V */}
+      <div className="relative overflow-hidden" style={{ borderBottom: '1px solid #222' }}>
+        {/* Banner image full width */}
+        <div className="relative w-full" style={{ aspectRatio: '16/4', minHeight: '120px', maxHeight: '260px' }}>
+          <Image
+            src="https://d2xsxph8kpxj0f.cloudfront.net/310519663514395106/RNwrdS82oyF4Jnnd33FcWg/banner-codigov_08f049f6.webp"
+            alt="Código V - Domina el Placer Femenino"
+            fill
+            style={{ objectFit: 'cover', objectPosition: 'center' }}
+            priority
+          />
+          {/* Dark overlay at bottom for text readability */}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 50%, rgba(10,10,10,0.7) 100%)' }} />
+        </div>
+        {/* Progress bar below banner */}
+        <div className="max-w-6xl mx-auto px-4 py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <div className="flex items-center gap-2 mb-3">
-                <span
-                  className="text-xs font-semibold px-2 py-1 rounded"
-                  style={{ background: 'rgba(230,57,70,0.15)', color: '#E63946', border: '1px solid rgba(230,57,70,0.3)', letterSpacing: '0.05em' }}
-                >
-                  ÁREA DE MIEMBROS
-                </span>
-              </div>
-              <h1
-                className="text-3xl md:text-4xl font-bold mb-2"
-                style={{ fontFamily: 'var(--font-playfair)', color: 'white', lineHeight: 1.2 }}
-              >
-                Bienvenido, {user.name.split(' ')[0]}
-              </h1>
-              <p className="text-sm md:text-base" style={{ color: '#999' }}>
-                Continúa tu aprendizaje donde lo dejaste
+              <p className="text-sm font-medium" style={{ color: 'white' }}>
+                Bienvenido, <span style={{ color: '#E63946' }}>{user.name.split(' ')[0]}</span>
               </p>
+              <p className="text-xs" style={{ color: '#666' }}>Continúa tu aprendizaje donde lo dejaste</p>
             </div>
-
-            {/* Progress Card */}
-            <div
-              className="rounded-xl p-4 min-w-[200px]"
-              style={{ background: 'rgba(26,26,26,0.8)', border: '1px solid #333' }}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs" style={{ color: '#999' }}>Progreso general</span>
-                <span className="text-sm font-bold" style={{ color: '#22C55E' }}>{overallProgress}%</span>
+            <div className="flex items-center gap-3">
+              <div style={{ flex: 1, minWidth: '140px' }}>
+                <div className="flex justify-between mb-1">
+                  <span className="text-xs" style={{ color: '#999' }}>Progreso general</span>
+                  <span className="text-xs font-bold" style={{ color: '#22C55E' }}>{overallProgress}%</span>
+                </div>
+                <div className="progress-bar">
+                  <div className="progress-bar-fill" style={{ width: `${overallProgress}%` }} />
+                </div>
+                <p className="text-xs mt-1" style={{ color: '#666' }}>{totalCompleted} de {totalLessons} clases</p>
               </div>
-              <div className="progress-bar mb-2">
-                <div className="progress-bar-fill" style={{ width: `${overallProgress}%` }} />
-              </div>
-              <p className="text-xs" style={{ color: '#666' }}>
-                {totalCompleted} de {totalLessons} clases completadas
-              </p>
             </div>
           </div>
         </div>
