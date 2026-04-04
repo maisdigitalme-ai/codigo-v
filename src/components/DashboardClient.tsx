@@ -275,32 +275,7 @@ function ModuleCard({ module }: { module: Module }) {
             </div>
           )}
 
-          {/* Bottom gradient overlay for title */}
-          <div style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: '60%',
-            background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 40%, transparent 100%)',
-          }} />
 
-          {/* Module title overlay at bottom */}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px' }}>
-            <p style={{ color: '#E63946', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
-              Módulo #{module.position}
-            </p>
-            <h3 style={{
-              color: 'white',
-              fontSize: '13px',
-              fontWeight: 700,
-              lineHeight: 1.3,
-              fontFamily: 'var(--font-inter)',
-              textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-            }}>
-              {module.title.replace(/^Módulo #\d+:\s*/, '')}
-            </h3>
-          </div>
 
           {/* Progress indicator */}
           {progress > 0 && (
