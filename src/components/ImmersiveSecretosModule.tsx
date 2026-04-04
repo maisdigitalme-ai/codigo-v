@@ -91,6 +91,15 @@ function AnimatedPage({ url, index, sectionColor }: { url: string; index: number
   const { ref, visible } = useInView(0.03);
   const [loaded, setLoaded] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // Check if image is already cached/loaded on mount
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img && img.complete && img.naturalWidth > 0) {
+      setLoaded(true);
+    }
+  }, []);
 
   return (
     <div
@@ -148,11 +157,13 @@ function AnimatedPage({ url, index, sectionColor }: { url: string; index: number
           </div>
         )}
         <img
+          ref={imgRef}
           src={url}
           alt={`Página ${index + 1}`}
-          style={{ width: '100%', height: 'auto', display: 'block' }}
+          style={{ width: '100%', height: 'auto', display: 'block', position: 'relative', zIndex: 2 }}
           loading={index < 2 ? 'eager' : 'lazy'}
           onLoad={() => setLoaded(true)}
+          onError={() => setLoaded(true)}
         />
         {/* Page number overlay */}
         <div style={{
