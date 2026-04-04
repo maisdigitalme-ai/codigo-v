@@ -22,8 +22,17 @@ export async function setupDatabase() {
       thumbnail_url TEXT,
       position INTEGER NOT NULL DEFAULT 0,
       is_published BOOLEAN DEFAULT TRUE,
+      course_group VARCHAR(100) DEFAULT 'codigo-v',
       created_at TIMESTAMP DEFAULT NOW()
     )
+  `;
+
+  // Add course_group column if it doesn't exist (migration for existing DBs)
+  await sql`
+    DO $$ BEGIN
+      ALTER TABLE modules ADD COLUMN IF NOT EXISTS course_group VARCHAR(100) DEFAULT 'codigo-v';
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
   `;
 
   await sql`
@@ -157,6 +166,21 @@ export async function setupDatabase() {
       ON CONFLICT (email) DO NOTHING
     `;
   }
+
+  // Migration: Set course_group for Secretos Sexuales module
+  await sql`
+    UPDATE modules SET course_group = 'secretos-sexuales'
+    WHERE title ILIKE '%secretos%' AND course_group = 'codigo-v'
+  `;
+
+  // Ensure site_settings table exists
+  await sql`
+    CREATE TABLE IF NOT EXISTS site_settings (
+      id SERIAL PRIMARY KEY,
+      key VARCHAR(255) UNIQUE NOT NULL,
+      value TEXT
+    )
+  `;
 
   console.log('✅ Banco de dados configurado com sucesso!');
 }

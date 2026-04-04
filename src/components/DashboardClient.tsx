@@ -13,6 +13,7 @@ interface Module {
   position: number;
   lesson_count: number;
   completed_count: number;
+  course_group?: string;
 }
 
 interface User {
@@ -29,18 +30,21 @@ interface Settings {
 
 export default function DashboardClient({
   modules,
+  secretosModules = [],
   user,
   settings,
 }: {
   modules: Module[];
+  secretosModules?: Module[];
   user: User;
   settings: Settings;
 }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const totalLessons = modules.reduce((a, m) => a + Number(m.lesson_count), 0);
-  const totalCompleted = modules.reduce((a, m) => a + Number(m.completed_count), 0);
+  const allModules = [...modules, ...secretosModules];
+  const totalLessons = allModules.reduce((a, m) => a + Number(m.lesson_count), 0);
+  const totalCompleted = allModules.reduce((a, m) => a + Number(m.completed_count), 0);
   const overallProgress = totalLessons > 0 ? Math.round((totalCompleted / totalLessons) * 100) : 0;
 
   const bannerUrl = settings.banner_url || '';
@@ -147,7 +151,7 @@ export default function DashboardClient({
         </div>
       </header>
 
-      {/* Hero Banner - Full width, sem corte */}
+      {/* Hero Banner - Full width */}
       {bannerUrl && (
         <div className="relative w-full" style={{ background: '#000' }}>
           <img
@@ -188,15 +192,16 @@ export default function DashboardClient({
         </div>
       </div>
 
-      {/* Course Title */}
+      {/* ═══════════════════════════════════════════════════ */}
+      {/* COURSE 1: Código V */}
+      {/* ═══════════════════════════════════════════════════ */}
       <div className="max-w-7xl mx-auto px-4 pt-6 pb-2">
         <h2 style={{ color: 'white', fontSize: '16px', fontWeight: 600, fontFamily: 'var(--font-inter)' }}>
-          {siteTitle}
+          Código V
         </h2>
       </div>
 
-      {/* Modules - Horizontal scroll on mobile, grid on desktop */}
-      <main className="max-w-7xl mx-auto px-4 py-4 pb-12">
+      <main className="max-w-7xl mx-auto px-4 py-4 pb-8">
         {/* Desktop: Grid layout */}
         <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {modules.map((module) => (
@@ -215,6 +220,40 @@ export default function DashboardClient({
           </div>
         </div>
       </main>
+
+      {/* ═══════════════════════════════════════════════════ */}
+      {/* COURSE 2: Secretos Sexuales que Todo Hombre Debe Saber */}
+      {/* ═══════════════════════════════════════════════════ */}
+      {secretosModules.length > 0 && (
+        <>
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+          <div className="max-w-7xl mx-auto px-4 pt-6 pb-2">
+            <h2 style={{ color: 'white', fontSize: '16px', fontWeight: 600, fontFamily: 'var(--font-inter)' }}>
+              Secretos Sexuales que Todo Hombre Debe Saber
+            </h2>
+          </div>
+
+          <main className="max-w-7xl mx-auto px-4 py-4 pb-12">
+            {/* Desktop: Grid layout */}
+            <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {secretosModules.map((module) => (
+                <ModuleCard key={module.id} module={module} />
+              ))}
+            </div>
+
+            {/* Mobile: Horizontal scroll */}
+            <div className="md:hidden overflow-x-auto pb-4" style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
+              <div className="flex gap-3" style={{ width: 'max-content' }}>
+                {secretosModules.map((module) => (
+                  <div key={module.id} style={{ width: '160px', scrollSnapAlign: 'start', flexShrink: 0 }}>
+                    <ModuleCard module={module} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </main>
+        </>
+      )}
     </div>
   );
 }
@@ -274,8 +313,6 @@ function ModuleCard({ module }: { module: Module }) {
               </div>
             </div>
           )}
-
-
 
           {/* Progress indicator */}
           {progress > 0 && (

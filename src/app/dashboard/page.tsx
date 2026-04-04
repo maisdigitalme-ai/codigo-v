@@ -20,6 +20,10 @@ export default async function DashboardPage() {
     ORDER BY m.position
   `;
 
+  // Separate modules by course group
+  const codigoVModules = modules.filter((m: any) => !m.course_group || m.course_group === 'codigo-v');
+  const secretosModules = modules.filter((m: any) => m.course_group === 'secretos-sexuales');
+
   // Fetch site settings
   const settingsRows = await sql`SELECT key, value FROM site_settings`;
   const settings: Record<string, string> = {};
@@ -29,7 +33,8 @@ export default async function DashboardPage() {
 
   return (
     <DashboardClient
-      modules={JSON.parse(JSON.stringify(modules))}
+      modules={JSON.parse(JSON.stringify(codigoVModules))}
+      secretosModules={JSON.parse(JSON.stringify(secretosModules))}
       user={{ name: session.name, email: session.email, isAdmin: session.isAdmin }}
       settings={settings}
     />
