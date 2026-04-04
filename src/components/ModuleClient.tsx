@@ -36,7 +36,7 @@ interface User {
 }
 
 export default function ModuleClient({
-  module,
+  module: mod,
   lessons,
   initialLesson,
   user,
@@ -49,11 +49,18 @@ export default function ModuleClient({
   const router = useRouter();
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(initialLesson);
   const [lessonList, setLessonList] = useState<Lesson[]>(lessons);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loadingComment, setLoadingComment] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [logoUrl, setLogoUrl] = useState('');
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(data => { if (data.logo_url) setLogoUrl(data.logo_url); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (activeLesson) loadComments(activeLesson.id);
@@ -70,9 +77,7 @@ export default function ModuleClient({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ lessonId, completed }),
     });
-    setLessonList(prev =>
-      prev.map(l => l.id === lessonId ? { ...l, completed } : l)
-    );
+    setLessonList(prev => prev.map(l => l.id === lessonId ? { ...l, completed } : l));
     if (activeLesson?.id === lessonId) {
       setActiveLesson(prev => prev ? { ...prev, completed } : null);
     }
@@ -107,486 +112,273 @@ export default function ModuleClient({
 
   const completedCount = lessonList.filter(l => l.completed).length;
   const progress = lessonList.length > 0 ? Math.round((completedCount / lessonList.length) * 100) : 0;
+  const currentIndex = activeLesson ? lessonList.findIndex(l => l.id === activeLesson.id) : -1;
+  const hasNext = currentIndex < lessonList.length - 1;
+  const hasPrev = currentIndex > 0;
 
-  const nextLesson = activeLesson
-    ? lessonList.find(l => l.position === activeLesson.position + 1) || null
-    : null;
+  function goToNext() {
+    if (hasNext) {
+      setActiveLesson(lessonList[currentIndex + 1]);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  function goToPrev() {
+    if (hasPrev) {
+      setActiveLesson(lessonList[currentIndex - 1]);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0A0A0A', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: '#0A0A0A' }}>
       {/* Header */}
-      <header
-        className="sticky top-0 z-50"
-        style={{
-          background: 'rgba(10,10,10,0.97)',
-          backdropFilter: 'blur(10px)',
-          borderBottom: '1px solid #222',
-        }}
-      >
-        <div className="flex items-center justify-between px-4 py-3">
-          {/* Left: Back + Logo */}
+      <header className="sticky top-0 z-50" style={{ background: 'rgba(10,10,10,0.97)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto">
           <div className="flex items-center gap-3">
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-1 text-sm transition-colors hover:text-white"
-              style={{ color: '#999', textDecoration: 'none' }}
-            >
+            <Link href="/dashboard" className="flex items-center gap-2" style={{ color: '#999', textDecoration: 'none', fontSize: '14px' }}>
               <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path d="M19 12H5M12 19l-7-7 7-7"/>
               </svg>
-              <span className="hidden sm:inline">Volver</span>
+              <span className="hidden sm:inline">Inicio</span>
             </Link>
-            <div
-              className="w-px h-4"
-              style={{ background: '#333' }}
-            />
-            <span
-              className="text-sm font-semibold truncate max-w-[160px] sm:max-w-xs"
-              style={{ color: 'white', fontFamily: 'var(--font-inter)' }}
-            >
-              {module.title}
-            </span>
+            <span style={{ color: '#333' }}>/</span>
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" style={{ height: '28px', objectFit: 'contain' }} />
+            ) : (
+              <span style={{ color: 'white', fontSize: '14px', fontWeight: 600 }}>Código V</span>
+            )}
           </div>
-
-          {/* Right: Sidebar toggle (mobile) + User */}
-          <div className="flex items-center gap-3">
-            {/* Mobile sidebar toggle */}
-            <button
-              className="lg:hidden flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg"
-              style={{ background: '#1A1A1A', border: '1px solid #333', color: '#CCC', cursor: 'pointer' }}
-              onClick={() => setSidebarOpen(true)}
-            >
-              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <line x1="8" y1="6" x2="21" y2="6"/>
-                <line x1="8" y1="12" x2="21" y2="12"/>
-                <line x1="8" y1="18" x2="21" y2="18"/>
-                <line x1="3" y1="6" x2="3.01" y2="6"/>
-                <line x1="3" y1="12" x2="3.01" y2="12"/>
-                <line x1="3" y1="18" x2="3.01" y2="18"/>
-              </svg>
-              Clases
+          <div className="relative">
+            <button onClick={() => setMenuOpen(!menuOpen)} className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: '#E63946', color: 'white', border: 'none', cursor: 'pointer' }}>
+              {user.name.charAt(0).toUpperCase()}
             </button>
-
-            {/* User */}
-            <div className="relative">
-              <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-                style={{ background: '#E63946', color: 'white', border: 'none', cursor: 'pointer' }}
-              >
-                {user.name.charAt(0).toUpperCase()}
-              </button>
-              {menuOpen && (
-                <div
-                  className="absolute right-0 mt-2 w-44 rounded-xl overflow-hidden"
-                  style={{ background: '#1A1A1A', border: '1px solid #333', boxShadow: '0 8px 32px rgba(0,0,0,0.6)', zIndex: 100 }}
-                >
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+                <div className="absolute right-0 mt-2 w-48 rounded-xl overflow-hidden z-50 animate-fade-in" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', boxShadow: '0 12px 40px rgba(0,0,0,0.6)' }}>
+                  <div className="px-4 py-3" style={{ borderBottom: '1px solid #2A2A2A' }}>
+                    <p className="text-sm font-medium" style={{ color: 'white' }}>{user.name}</p>
+                    <p className="text-xs" style={{ color: '#666' }}>{user.email}</p>
+                  </div>
                   {user.isAdmin && (
-                    <Link
-                      href="/admin"
-                      className="flex items-center gap-2 px-4 py-3 text-sm hover:bg-[#242424]"
-                      style={{ color: '#E63946', textDecoration: 'none' }}
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      Panel Admin
-                    </Link>
+                    <Link href="/admin" className="block px-4 py-3 text-sm" style={{ color: '#E63946', textDecoration: 'none' }}>Panel de Admin</Link>
                   )}
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-2 w-full px-4 py-3 text-sm hover:bg-[#242424]"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999', textAlign: 'left' }}
-                  >
-                    Cerrar sesión
-                  </button>
+                  <button onClick={handleLogout} className="w-full text-left px-4 py-3 text-sm" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999' }}>Cerrar sesión</button>
                 </div>
-              )}
-            </div>
+              </>
+            )}
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Video + Comments Area */}
-        <div className="flex-1 overflow-y-auto">
-          {/* Video Player */}
-          <div style={{ background: '#000', borderBottom: '1px solid #1A1A1A' }}>
-            {activeLesson?.video_embed ? (
-              <div
-                className="video-container"
-                style={{ maxHeight: '70vh' }}
-                dangerouslySetInnerHTML={{ __html: activeLesson.video_embed }}
-              />
-            ) : (
-              <div
-                className="flex items-center justify-center"
-                style={{ aspectRatio: '16/9', maxHeight: '70vh', background: '#111' }}
-              >
-                <div className="text-center px-6">
-                  <div
-                    className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
-                    style={{ background: 'rgba(230,57,70,0.1)', border: '2px solid rgba(230,57,70,0.3)' }}
-                  >
-                    <svg width="32" height="32" fill="none" stroke="#E63946" strokeWidth="1.5" viewBox="0 0 24 24">
-                      <polygon points="5 3 19 12 5 21 5 3"/>
-                    </svg>
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col lg:flex-row">
+          {/* Video + Info Section */}
+          <div className="flex-1">
+            {/* Video Player */}
+            <div style={{ background: '#000' }}>
+              {activeLesson?.video_embed ? (
+                <div className="video-container" dangerouslySetInnerHTML={{ __html: activeLesson.video_embed }} />
+              ) : (
+                <div className="flex items-center justify-center" style={{ aspectRatio: '16/9', background: '#111' }}>
+                  <div className="text-center px-6">
+                    <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: 'rgba(230,57,70,0.1)', border: '2px solid rgba(230,57,70,0.3)' }}>
+                      <svg width="28" height="28" fill="none" stroke="#E63946" strokeWidth="1.5" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    </div>
+                    <p className="text-sm" style={{ color: '#666' }}>{activeLesson ? 'Video próximamente disponible' : 'Selecciona una clase'}</p>
                   </div>
-                  <p className="text-sm mb-1" style={{ color: '#999' }}>
-                    {activeLesson ? 'Video próximamente disponible' : 'Selecciona una clase para comenzar'}
-                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Breadcrumb + Title */}
+            <div className="px-4 py-4">
+              <div className="flex items-center gap-2 text-xs mb-2" style={{ color: '#666' }}>
+                <Link href="/dashboard" style={{ color: '#888', textDecoration: 'none' }}>Inicio</Link>
+                <span>&gt;</span>
+                <span style={{ color: '#AAA' }}>{mod.title.replace(/^Módulo #\d+:\s*/, '')}</span>
+              </div>
+              <h1 style={{ color: 'white', fontSize: '18px', fontWeight: 600, fontFamily: 'var(--font-inter)', lineHeight: 1.4 }}>
+                {activeLesson?.title || 'Selecciona una clase'}
+              </h1>
+              {activeLesson?.description && (
+                <p className="mt-2" style={{ color: '#888', fontSize: '14px', lineHeight: 1.6 }}>{activeLesson.description}</p>
+              )}
+            </div>
+
+            {/* Action Bar */}
+            <div className="px-4 pb-4">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3">
                   {activeLesson && (
-                    <p className="text-xs" style={{ color: '#555' }}>
-                      El administrador aún no ha agregado el video
-                    </p>
+                    <button
+                      onClick={() => markComplete(activeLesson.id, !activeLesson.completed)}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                      style={{
+                        background: activeLesson.completed ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)',
+                        border: `1px solid ${activeLesson.completed ? 'rgba(34,197,94,0.3)' : '#333'}`,
+                        color: activeLesson.completed ? '#22C55E' : '#999',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {activeLesson.completed ? (
+                        <><svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Completada</>
+                      ) : (
+                        <><svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>Marcar como vista</>
+                      )}
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {hasPrev && (
+                    <button onClick={goToPrev} className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid #333', color: '#999', cursor: 'pointer' }}>
+                      <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                      <span className="hidden sm:inline">Anterior</span>
+                    </button>
+                  )}
+                  {hasNext && (
+                    <button onClick={goToNext} className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium" style={{ background: '#E63946', border: 'none', color: 'white', cursor: 'pointer' }}>
+                      Siguiente
+                      <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Comments Section */}
+            {activeLesson && (
+              <div className="px-4 pb-8" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <h3 className="pt-4 mb-4" style={{ color: 'white', fontSize: '15px', fontWeight: 600, fontFamily: 'var(--font-inter)' }}>
+                  Comentarios ({comments.length})
+                </h3>
+                <form onSubmit={submitComment} className="mb-6">
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: '#E63946', color: 'white' }}>
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1">
+                      <textarea
+                        className="input-dark w-full"
+                        rows={2}
+                        value={newComment}
+                        onChange={e => setNewComment(e.target.value)}
+                        placeholder="Escribe un comentario..."
+                        style={{ resize: 'none', fontSize: '14px' }}
+                      />
+                      <div className="flex justify-end mt-2">
+                        <button type="submit" disabled={loadingComment || !newComment.trim()} className="btn-red text-sm px-4 py-2" style={{ opacity: loadingComment || !newComment.trim() ? 0.5 : 1 }}>
+                          {loadingComment ? 'Enviando...' : 'Comentar'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+                <div className="space-y-4">
+                  {comments.map(comment => (
+                    <div key={comment.id} className="flex gap-3">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: '#333', color: '#999' }}>
+                        {comment.user_name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-medium" style={{ color: 'white' }}>{comment.user_name}</span>
+                          <span className="text-xs" style={{ color: '#555' }}>{new Date(comment.created_at).toLocaleDateString('es-ES')}</span>
+                        </div>
+                        <p className="text-sm" style={{ color: '#AAA', lineHeight: 1.5 }}>{comment.content}</p>
+                        {user.isAdmin && (
+                          <button onClick={() => deleteComment(comment.id)} className="text-xs mt-1" style={{ color: '#555', background: 'none', border: 'none', cursor: 'pointer' }}>Eliminar</button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {comments.length === 0 && (
+                    <p className="text-center py-6" style={{ color: '#444', fontSize: '14px' }}>Sé el primero en comentar</p>
                   )}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Lesson Info */}
-          {activeLesson && (
-            <div className="px-4 py-5 max-w-4xl">
-              <div className="flex items-start justify-between gap-4 mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs" style={{ color: '#666' }}>
-                      Clase {activeLesson.position}
-                    </span>
-                    {activeLesson.duration && (
-                      <>
-                        <span style={{ color: '#444' }}>·</span>
-                        <span className="text-xs" style={{ color: '#666' }}>{activeLesson.duration}</span>
-                      </>
-                    )}
-                  </div>
-                  <h1
-                    className="text-xl md:text-2xl font-bold mb-2"
-                    style={{ fontFamily: 'var(--font-playfair)', color: 'white', lineHeight: 1.3 }}
-                  >
-                    {activeLesson.title}
-                  </h1>
-                  {activeLesson.description && (
-                    <p className="text-sm" style={{ color: '#999', lineHeight: 1.6 }}>
-                      {activeLesson.description}
-                    </p>
-                  )}
-                </div>
-
-                {/* Mark Complete Button */}
-                <button
-                  onClick={() => markComplete(activeLesson.id, !activeLesson.completed)}
-                  className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                  style={{
-                    background: activeLesson.completed ? 'rgba(34,197,94,0.15)' : 'rgba(230,57,70,0.15)',
-                    border: `1px solid ${activeLesson.completed ? 'rgba(34,197,94,0.4)' : 'rgba(230,57,70,0.4)'}`,
-                    color: activeLesson.completed ? '#22C55E' : '#E63946',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {activeLesson.completed ? (
-                    <>
-                      <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                        <polyline points="20 6 9 17 4 12"/>
-                      </svg>
-                      Completada
-                    </>
-                  ) : (
-                    <>
-                      <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="10"/>
-                      </svg>
-                      Marcar completa
-                    </>
-                  )}
-                </button>
+          {/* Sidebar - Desktop only */}
+          <aside className="hidden lg:block" style={{ width: '320px', flexShrink: 0, borderLeft: '1px solid rgba(255,255,255,0.06)', background: '#0D0D0D' }}>
+            <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="flex items-center justify-between mb-2">
+                <h3 style={{ color: 'white', fontSize: '14px', fontWeight: 600, fontFamily: 'var(--font-inter)' }}>Clases</h3>
+                <span className="text-xs" style={{ color: '#666' }}>{completedCount}/{lessonList.length}</span>
               </div>
-
-              {/* Next Lesson */}
-              {nextLesson && (
-                <div
-                  className="flex items-center justify-between p-3 rounded-xl mb-6"
-                  style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{ background: 'rgba(230,57,70,0.1)' }}
-                    >
-                      <svg width="14" height="14" fill="none" stroke="#E63946" strokeWidth="2" viewBox="0 0 24 24">
-                        <polygon points="5 3 19 12 5 21 5 3"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-xs mb-0.5" style={{ color: '#666' }}>Siguiente clase</p>
-                      <p className="text-sm font-medium" style={{ color: '#CCC' }}>{nextLesson.title}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setActiveLesson(nextLesson)}
-                    className="btn-red text-xs px-3 py-2"
-                  >
-                    Continuar →
-                  </button>
-                </div>
-              )}
-
-              {/* Comments Section */}
-              <div>
-                <h3 className="text-base font-semibold mb-4" style={{ color: 'white', fontFamily: 'var(--font-inter)' }}>
-                  Comentarios ({comments.length})
-                </h3>
-
-                {/* Comment Form */}
-                <form onSubmit={submitComment} className="mb-6">
-                  <div className="flex gap-3">
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-1"
-                      style={{ background: '#E63946', color: 'white' }}
-                    >
-                      {user.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1">
-                      <textarea
-                        value={newComment}
-                        onChange={e => setNewComment(e.target.value)}
-                        placeholder="Escribe un comentario..."
-                        rows={3}
-                        className="input-dark resize-none"
-                        style={{ fontSize: '14px' }}
-                      />
-                      <div className="flex justify-end mt-2">
-                        <button
-                          type="submit"
-                          disabled={loadingComment || !newComment.trim()}
-                          className="btn-red text-sm px-4 py-2"
-                          style={{ opacity: loadingComment || !newComment.trim() ? 0.6 : 1 }}
-                        >
-                          Comentar
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </form>
-
-                {/* Comments List */}
-                <div className="space-y-4">
-                  {comments.length === 0 ? (
-                    <p className="text-sm text-center py-6" style={{ color: '#555' }}>
-                      Sé el primero en comentar esta clase
-                    </p>
-                  ) : (
-                    comments.map(comment => (
-                      <div key={comment.id} className="flex gap-3">
-                        <div
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                          style={{ background: '#2A2A2A', color: '#CCC' }}
-                        >
-                          {comment.user_name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-medium" style={{ color: 'white' }}>{comment.user_name}</span>
-                            <span className="text-xs" style={{ color: '#555' }}>
-                              {new Date(comment.created_at).toLocaleDateString('es-ES', {
-                                day: 'numeric', month: 'short', year: 'numeric'
-                              })}
-                            </span>
-                            {user.isAdmin && (
-                              <button
-                                onClick={() => deleteComment(comment.id)}
-                                className="ml-auto text-xs"
-                                style={{ color: '#E63946', background: 'none', border: 'none', cursor: 'pointer' }}
-                              >
-                                Eliminar
-                              </button>
-                            )}
-                          </div>
-                          <p className="text-sm" style={{ color: '#CCC', lineHeight: 1.6 }}>{comment.content}</p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
+              <div className="progress-bar" style={{ height: '4px' }}>
+                <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
               </div>
             </div>
-          )}
+            <div style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 140px)' }}>
+              {lessonList.map((lesson, idx) => (
+                <LessonItem key={lesson.id} lesson={lesson} index={idx + 1} isActive={activeLesson?.id === lesson.id} onClick={() => { setActiveLesson(lesson); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
+              ))}
+            </div>
+          </aside>
         </div>
 
-        {/* Sidebar — Desktop */}
-        <aside
-          className="hidden lg:flex flex-col"
-          style={{
-            width: '320px',
-            background: '#111',
-            borderLeft: '1px solid #222',
-            height: 'calc(100vh - 57px)',
-            position: 'sticky',
-            top: '57px',
-            overflowY: 'auto',
-          }}
-        >
-          <SidebarContent
-            module={module}
-            lessons={lessonList}
-            activeLesson={activeLesson}
-            completedCount={completedCount}
-            progress={progress}
-            onSelectLesson={setActiveLesson}
-            onClose={() => {}}
-          />
-        </aside>
-      </div>
-
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-40"
-            style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(2px)' }}
-            onClick={() => setSidebarOpen(false)}
-          />
-          <aside
-            className="fixed right-0 top-0 bottom-0 z-50 flex flex-col"
-            style={{
-              width: 'min(320px, 90vw)',
-              background: '#111',
-              borderLeft: '1px solid #222',
-              overflowY: 'auto',
-            }}
-          >
-            <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: '#222' }}>
-              <span className="font-semibold text-sm" style={{ color: 'white' }}>Clases del módulo</span>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999' }}
-              >
-                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
+        {/* Mobile: Lessons list below everything */}
+        <div className="lg:hidden px-4 pb-8">
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="flex items-center justify-between pt-4 mb-3">
+              <h3 style={{ color: 'white', fontSize: '15px', fontWeight: 600, fontFamily: 'var(--font-inter)' }}>
+                Clases del módulo
+              </h3>
+              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(34,197,94,0.15)', color: '#22C55E', fontSize: '11px' }}>
+                {completedCount}/{lessonList.length}
+              </span>
             </div>
-            <SidebarContent
-              module={module}
-              lessons={lessonList}
-              activeLesson={activeLesson}
-              completedCount={completedCount}
-              progress={progress}
-              onSelectLesson={(lesson) => { setActiveLesson(lesson); setSidebarOpen(false); }}
-              onClose={() => setSidebarOpen(false)}
-            />
-          </aside>
-        </>
-      )}
+            <div className="space-y-1">
+              {lessonList.map((lesson, idx) => (
+                <LessonItem key={lesson.id} lesson={lesson} index={idx + 1} isActive={activeLesson?.id === lesson.id} onClick={() => { setActiveLesson(lesson); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
-function SidebarContent({
-  module,
-  lessons,
-  activeLesson,
-  completedCount,
-  progress,
-  onSelectLesson,
-}: {
-  module: Module;
-  lessons: Lesson[];
-  activeLesson: Lesson | null;
-  completedCount: number;
-  progress: number;
-  onSelectLesson: (lesson: Lesson) => void;
-  onClose: () => void;
-}) {
+function LessonItem({ lesson, index, isActive, onClick }: { lesson: Lesson; index: number; isActive: boolean; onClick: () => void }) {
   return (
-    <div className="flex flex-col h-full">
-      {/* Module Header */}
-      <div className="p-4 border-b" style={{ borderColor: '#222' }}>
-        <div className="flex items-center gap-2 mb-2">
-          <span
-            className="text-xs font-bold px-2 py-0.5 rounded"
-            style={{ background: '#E63946', color: 'white' }}
-          >
-            Módulo {module.position}
-          </span>
-        </div>
-        <h3 className="text-sm font-semibold mb-3" style={{ color: 'white', fontFamily: 'var(--font-inter)', lineHeight: 1.4 }}>
-          {module.title}
-        </h3>
-        {/* Progress */}
-        <div>
-          <div className="flex justify-between mb-1">
-            <span className="text-xs" style={{ color: '#666' }}>{completedCount}/{lessons.length} clases</span>
-            <span className="text-xs font-medium" style={{ color: progress === 100 ? '#22C55E' : '#E63946' }}>{progress}%</span>
+    <button
+      onClick={onClick}
+      className="w-full text-left transition-all duration-200"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        padding: '12px 16px',
+        background: isActive ? 'rgba(230,57,70,0.08)' : 'transparent',
+        borderLeft: isActive ? '3px solid #E63946' : '3px solid transparent',
+        cursor: 'pointer',
+        border: 'none',
+        borderRadius: '8px',
+      }}
+      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+    >
+      <div className="flex-shrink-0">
+        {lesson.completed ? (
+          <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: '#22C55E' }}>
+            <svg width="10" height="10" fill="none" stroke="white" strokeWidth="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
           </div>
-          <div className="progress-bar">
-            <div
-              className="progress-bar-fill"
-              style={{ width: `${progress}%`, background: progress === 100 ? '#22C55E' : '#E63946' }}
-            />
+        ) : (
+          <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium" style={{ background: isActive ? 'rgba(230,57,70,0.2)' : 'rgba(255,255,255,0.05)', color: isActive ? '#E63946' : '#666', border: `1px solid ${isActive ? 'rgba(230,57,70,0.4)' : '#333'}` }}>
+            {index}
           </div>
-        </div>
+        )}
       </div>
-
-      {/* Lessons List */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-1">
-        {lessons.map((lesson) => (
-          <button
-            key={lesson.id}
-            onClick={() => onSelectLesson(lesson)}
-            className="w-full text-left p-3 rounded-xl transition-all"
-            style={{
-              background: activeLesson?.id === lesson.id ? 'rgba(230,57,70,0.12)' : 'transparent',
-              border: `1px solid ${activeLesson?.id === lesson.id ? 'rgba(230,57,70,0.4)' : 'transparent'}`,
-              cursor: 'pointer',
-            }}
-          >
-            <div className="flex items-start gap-3">
-              {/* Status Icon */}
-              <div
-                className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                style={{
-                  background: lesson.completed
-                    ? 'rgba(34,197,94,0.2)'
-                    : activeLesson?.id === lesson.id
-                    ? 'rgba(230,57,70,0.2)'
-                    : 'rgba(255,255,255,0.05)',
-                  border: `1.5px solid ${lesson.completed ? '#22C55E' : activeLesson?.id === lesson.id ? '#E63946' : '#333'}`,
-                }}
-              >
-                {lesson.completed ? (
-                  <svg width="10" height="10" fill="none" stroke="#22C55E" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
-                ) : activeLesson?.id === lesson.id ? (
-                  <svg width="8" height="8" fill="#E63946" viewBox="0 0 24 24">
-                    <polygon points="5 3 19 12 5 21 5 3"/>
-                  </svg>
-                ) : (
-                  <span className="text-xs" style={{ color: '#555' }}>{lesson.position}</span>
-                )}
-              </div>
-
-              {/* Lesson Info */}
-              <div className="flex-1 min-w-0">
-                <p
-                  className="text-xs font-medium leading-tight"
-                  style={{
-                    color: activeLesson?.id === lesson.id ? 'white' : lesson.completed ? '#888' : '#CCC',
-                    lineHeight: 1.4,
-                  }}
-                >
-                  {lesson.title}
-                </p>
-                {lesson.duration && (
-                  <p className="text-xs mt-0.5" style={{ color: '#555' }}>{lesson.duration}</p>
-                )}
-              </div>
-            </div>
-          </button>
-        ))}
+      <div className="flex-1 min-w-0">
+        <p style={{ color: isActive ? '#E63946' : lesson.completed ? '#888' : 'white', fontSize: '13px', fontWeight: isActive ? 600 : 400, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {lesson.title}
+        </p>
+        {lesson.duration && <p style={{ color: '#555', fontSize: '11px', marginTop: '2px' }}>{lesson.duration}</p>}
       </div>
-    </div>
+    </button>
   );
 }

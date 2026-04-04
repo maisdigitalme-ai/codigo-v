@@ -7,5 +7,5 @@ export default async function AdminPage() {
   const session = await getSession();
   if (!session?.isAdmin) redirect('/dashboard');
 
-  return <AdminClient user={{ name: session.name, email: session.email }} />;
+  return <AdminClient userName={session.name} userEmail={session.email} />;
 }

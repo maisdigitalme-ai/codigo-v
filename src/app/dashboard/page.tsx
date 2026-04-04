@@ -20,10 +20,18 @@ export default async function DashboardPage() {
     ORDER BY m.position
   `;
 
+  // Fetch site settings
+  const settingsRows = await sql`SELECT key, value FROM site_settings`;
+  const settings: Record<string, string> = {};
+  settingsRows.forEach((s: { key: string; value: string }) => {
+    settings[s.key] = s.value;
+  });
+
   return (
     <DashboardClient
       modules={JSON.parse(JSON.stringify(modules))}
       user={{ name: session.name, email: session.email, isAdmin: session.isAdmin }}
+      settings={settings}
     />
   );
 }
