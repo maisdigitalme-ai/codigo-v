@@ -28,6 +28,7 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
   const [showAddLesson, setShowAddLesson] = useState(false);
   const [editLesson, setEditLesson] = useState<Lesson | null>(null);
   const [showAddModule, setShowAddModule] = useState(false);
+  const [editModule, setEditModule] = useState<Module | null>(null);
 
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '123456', isAdmin: false });
   const [newLesson, setNewLesson] = useState({ moduleId: '', title: '', description: '', videoEmbed: '', duration: '' });
@@ -288,17 +289,26 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
                 <div className="space-y-2">
                   {modules.map(m => (
                     <div key={m.id} style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: '10px', padding: '14px 16px' }}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs font-bold px-2 py-0.5 rounded" style={{ background: '#E63946', color: 'white' }}>#{m.position}</span>
-                          <div>
-                            <p className="text-sm font-medium" style={{ color: 'white' }}>{m.title}</p>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          {m.thumbnail_url ? (
+                            <img src={m.thumbnail_url} alt={m.title} style={{ width: '48px', height: '64px', objectFit: 'cover', borderRadius: '6px', flexShrink: 0 }} />
+                          ) : (
+                            <span className="text-xs font-bold px-2 py-0.5 rounded flex-shrink-0" style={{ background: '#E63946', color: 'white' }}>#{m.position}</span>
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate" style={{ color: 'white' }}>{m.title}</p>
                             <p className="text-xs" style={{ color: '#666' }}>{m.lesson_count} clases</p>
                           </div>
                         </div>
-                        <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: m.is_published ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)', color: m.is_published ? '#22C55E' : '#666' }}>
-                          {m.is_published ? 'Publicado' : 'Oculto'}
-                        </span>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: m.is_published ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)', color: m.is_published ? '#22C55E' : '#666' }}>
+                            {m.is_published ? 'Publicado' : 'Oculto'}
+                          </span>
+                          <button onClick={() => setEditModule(m)} className="text-xs px-3 py-1.5 rounded-lg" style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.3)', color: '#E63946', cursor: 'pointer' }}>
+                            Editar
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -368,6 +378,48 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
             <Field label="Descripción"><textarea className="input-dark" rows={2} value={newModule.description} onChange={e => setNewModule(p => ({ ...p, description: e.target.value }))} placeholder="Descripción del módulo..." style={{ resize: 'none' }} /></Field>
             <Field label="URL de la Thumbnail"><input className="input-dark" value={newModule.thumbnailUrl} onChange={e => setNewModule(p => ({ ...p, thumbnailUrl: e.target.value }))} placeholder="https://..." /></Field>
             <ModalButtons onCancel={() => setShowAddModule(false)} submitLabel="Agregar" />
+          </form>
+        </Modal>
+      )}
+
+      {/* Modal: Edit Module */}
+      {editModule && (
+        <Modal title="Editar Módulo" onClose={() => setEditModule(null)}>
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            await fetch(`/api/admin/modules/${editModule.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                title: editModule.title,
+                description: editModule.description,
+                thumbnailUrl: editModule.thumbnail_url,
+                isPublished: editModule.is_published,
+              }),
+            });
+            setEditModule(null);
+            loadAll();
+          }} className="space-y-4">
+            <Field label="Título">
+              <input className="input-dark" value={editModule.title} onChange={e => setEditModule(p => p ? { ...p, title: e.target.value } : null)} required />
+            </Field>
+            <Field label="Descripción">
+              <textarea className="input-dark" rows={2} value={editModule.description || ''} onChange={e => setEditModule(p => p ? { ...p, description: e.target.value } : null)} style={{ resize: 'none' }} />
+            </Field>
+            <Field label="URL de la Foto de Capa">
+              <input className="input-dark" value={editModule.thumbnail_url || ''} onChange={e => setEditModule(p => p ? { ...p, thumbnail_url: e.target.value } : null)} placeholder="https://..." />
+              {editModule.thumbnail_url && (
+                <div className="mt-3 rounded-lg overflow-hidden" style={{ background: '#000' }}>
+                  <img src={editModule.thumbnail_url} alt="Preview" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain' }} />
+                </div>
+              )}
+              <p style={{ fontSize: '11px', color: '#555', marginTop: '6px' }}>Pega la URL de la nueva imagen de capa del módulo.</p>
+            </Field>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={editModule.is_published} onChange={e => setEditModule(p => p ? { ...p, is_published: e.target.checked } : null)} />
+              <span className="text-sm" style={{ color: '#CCC' }}>Publicado</span>
+            </label>
+            <ModalButtons onCancel={() => setEditModule(null)} submitLabel="Guardar" />
           </form>
         </Modal>
       )}
