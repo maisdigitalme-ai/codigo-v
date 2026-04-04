@@ -39,6 +39,11 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
   const [newModule, setNewModule] = useState({ title: '', description: '', thumbnailUrl: '', courseId: '' });
   const [newLesson, setNewLesson] = useState({ moduleId: '', title: '', description: '', videoEmbed: '', duration: '' });
 
+  // Inline module title editing in Lessons tab
+  const [editingModuleId, setEditingModuleId] = useState<number | null>(null);
+  const [editingModuleTitle, setEditingModuleTitle] = useState('');
+  const [savingModuleTitle, setSavingModuleTitle] = useState(false);
+
   useEffect(() => { loadAll(); }, []);
 
   async function loadAll() {
@@ -158,6 +163,31 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
     if (!confirm('¿Eliminar esta clase?')) return;
     await fetch(`/api/admin/lessons/${id}`, { method: 'DELETE' });
     loadAll();
+  }
+
+  // ═══ INLINE MODULE TITLE EDIT (from Lessons tab) ═══
+  function startEditModuleTitle(moduleId: number, currentTitle: string) {
+    setEditingModuleId(moduleId);
+    setEditingModuleTitle(currentTitle);
+  }
+
+  async function saveModuleTitle(moduleId: number) {
+    if (!editingModuleTitle.trim()) return;
+    setSavingModuleTitle(true);
+    await fetch(`/api/admin/modules/${moduleId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: editingModuleTitle.trim() }),
+    });
+    setSavingModuleTitle(false);
+    setEditingModuleId(null);
+    setEditingModuleTitle('');
+    loadAll();
+  }
+
+  function cancelEditModuleTitle() {
+    setEditingModuleId(null);
+    setEditingModuleTitle('');
   }
 
   async function handleLogout() {
@@ -449,7 +479,49 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
                     <div key={lesson.id} style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: '10px', padding: '14px 16px' }}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
-                          <span className="text-xs font-semibold" style={{ color: '#E63946' }}>{lesson.module_title}</span>
+                          {editingModuleId === lesson.module_id ? (
+                            <div className="flex items-center gap-2 mb-1">
+                              <input
+                                className="input-dark"
+                                value={editingModuleTitle}
+                                onChange={e => setEditingModuleTitle(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') { e.preventDefault(); saveModuleTitle(lesson.module_id); }
+                                  if (e.key === 'Escape') cancelEditModuleTitle();
+                                }}
+                                autoFocus
+                                style={{ fontSize: '12px', padding: '4px 8px', height: '28px', maxWidth: '320px' }}
+                              />
+                              <button
+                                onClick={() => saveModuleTitle(lesson.module_id)}
+                                disabled={savingModuleTitle}
+                                className="text-xs px-2 py-1 rounded"
+                                style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: '#22C55E', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                              >
+                                {savingModuleTitle ? '...' : 'Guardar'}
+                              </button>
+                              <button
+                                onClick={cancelEditModuleTitle}
+                                className="text-xs px-2 py-1 rounded"
+                                style={{ background: 'transparent', border: '1px solid #333', color: '#666', cursor: 'pointer' }}
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          ) : (
+                            <span
+                              className="text-xs font-semibold inline-flex items-center gap-1.5 group"
+                              style={{ color: '#E63946', cursor: 'pointer' }}
+                              onClick={() => startEditModuleTitle(lesson.module_id, lesson.module_title)}
+                              title="Haz clic para editar el nombre del módulo"
+                            >
+                              {lesson.module_title}
+                              <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ opacity: 0.5 }}>
+                                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                              </svg>
+                            </span>
+                          )}
                           <p className="text-sm font-medium mt-1" style={{ color: 'white' }}>{lesson.title}</p>
                           {lesson.video_embed ? (
                             <p className="text-xs mt-1" style={{ color: '#22C55E' }}>✓ Video configurado</p>
