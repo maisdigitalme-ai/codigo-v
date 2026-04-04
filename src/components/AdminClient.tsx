@@ -5,13 +5,15 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 interface User { id: number; name: string; email: string; is_admin: boolean; is_active: boolean; created_at: string; }
-interface Module { id: number; title: string; description: string; thumbnail_url: string; position: number; is_published: boolean; lesson_count: number; }
+interface Course { id: number; title: string; description: string; thumbnail_url: string; position: number; is_published: boolean; slug: string; content_type: string; module_count: number; }
+interface Module { id: number; title: string; description: string; thumbnail_url: string; position: number; is_published: boolean; lesson_count: number; course_id: number | null; course_group: string; }
 interface Lesson { id: number; module_id: number; title: string; description: string; video_embed: string; position: number; is_published: boolean; is_free: boolean; duration: string; module_title: string; }
 
 export default function AdminClient({ userName, userEmail }: { userName: string; userEmail: string }) {
   const router = useRouter();
-  const [tab, setTab] = useState<'settings' | 'users' | 'modules' | 'lessons'>('settings');
+  const [tab, setTab] = useState<'settings' | 'users' | 'courses' | 'modules' | 'lessons'>('settings');
   const [users, setUsers] = useState<User[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [modules, setModules] = useState<Module[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,23 +27,27 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
 
   // Modals
   const [showAddUser, setShowAddUser] = useState(false);
-  const [showAddLesson, setShowAddLesson] = useState(false);
-  const [editLesson, setEditLesson] = useState<Lesson | null>(null);
+  const [showAddCourse, setShowAddCourse] = useState(false);
+  const [editCourse, setEditCourse] = useState<Course | null>(null);
   const [showAddModule, setShowAddModule] = useState(false);
   const [editModule, setEditModule] = useState<Module | null>(null);
+  const [showAddLesson, setShowAddLesson] = useState(false);
+  const [editLesson, setEditLesson] = useState<Lesson | null>(null);
 
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '123456', isAdmin: false });
+  const [newCourse, setNewCourse] = useState({ title: '', description: '', thumbnailUrl: '', contentType: 'video' });
+  const [newModule, setNewModule] = useState({ title: '', description: '', thumbnailUrl: '', courseId: '' });
   const [newLesson, setNewLesson] = useState({ moduleId: '', title: '', description: '', videoEmbed: '', duration: '' });
-  const [newModule, setNewModule] = useState({ title: '', description: '', thumbnailUrl: '' });
 
   useEffect(() => { loadAll(); }, []);
 
   async function loadAll() {
     setLoading(true);
-    const [uRes, mRes, lRes, sRes] = await Promise.all([
-      fetch('/api/admin/users'), fetch('/api/admin/modules'), fetch('/api/admin/lessons'), fetch('/api/admin/settings')
+    const [uRes, cRes, mRes, lRes, sRes] = await Promise.all([
+      fetch('/api/admin/users'), fetch('/api/admin/courses'), fetch('/api/admin/modules'), fetch('/api/admin/lessons'), fetch('/api/admin/settings')
     ]);
     if (uRes.ok) setUsers(await uRes.json());
+    if (cRes.ok) setCourses(await cRes.json());
     if (mRes.ok) setModules(await mRes.json());
     if (lRes.ok) setLessons(await lRes.json());
     if (sRes.ok) {
@@ -82,6 +88,58 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
     loadAll();
   }
 
+  // ═══ COURSES ═══
+  async function addCourse(e: React.FormEvent) {
+    e.preventDefault();
+    const res = await fetch('/api/admin/courses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newCourse) });
+    if (res.ok) { setShowAddCourse(false); setNewCourse({ title: '', description: '', thumbnailUrl: '', contentType: 'video' }); loadAll(); }
+  }
+
+  async function updateCourse(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editCourse) return;
+    await fetch(`/api/admin/courses/${editCourse.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: editCourse.title, description: editCourse.description, thumbnailUrl: editCourse.thumbnail_url, isPublished: editCourse.is_published, contentType: editCourse.content_type }),
+    });
+    setEditCourse(null);
+    loadAll();
+  }
+
+  async function deleteCourse(id: number) {
+    if (!confirm('¿Eliminar este curso? Los módulos se desvinculan pero no se eliminan.')) return;
+    await fetch(`/api/admin/courses/${id}`, { method: 'DELETE' });
+    loadAll();
+  }
+
+  // ═══ MODULES ═══
+  async function addModule(e: React.FormEvent) {
+    e.preventDefault();
+    const courseId = newModule.courseId ? parseInt(newModule.courseId) : null;
+    const course = courses.find(c => c.id === courseId);
+    const courseGroup = course?.slug || 'codigo-v';
+    const res = await fetch('/api/admin/modules', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...newModule, courseId, courseGroup }) });
+    if (res.ok) { setShowAddModule(false); setNewModule({ title: '', description: '', thumbnailUrl: '', courseId: '' }); loadAll(); }
+  }
+
+  async function updateModule(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editModule) return;
+    await fetch(`/api/admin/modules/${editModule.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: editModule.title, description: editModule.description, thumbnailUrl: editModule.thumbnail_url, isPublished: editModule.is_published, courseId: editModule.course_id }),
+    });
+    setEditModule(null);
+    loadAll();
+  }
+
+  async function deleteModule(id: number) {
+    if (!confirm('¿Eliminar este módulo y todas sus clases?')) return;
+    await fetch(`/api/admin/modules/${id}`, { method: 'DELETE' });
+    loadAll();
+  }
+
+  // ═══ LESSONS ═══
   async function addLesson(e: React.FormEvent) {
     e.preventDefault();
     const res = await fetch('/api/admin/lessons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newLesson) });
@@ -102,12 +160,6 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
     loadAll();
   }
 
-  async function addModule(e: React.FormEvent) {
-    e.preventDefault();
-    const res = await fetch('/api/admin/modules', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newModule) });
-    if (res.ok) { setShowAddModule(false); setNewModule({ title: '', description: '', thumbnailUrl: '' }); loadAll(); }
-  }
-
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/login');
@@ -116,6 +168,7 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
   const tabs = [
     { id: 'settings' as const, label: 'Configuración', icon: '⚙️' },
     { id: 'users' as const, label: 'Usuarios', icon: '👥' },
+    { id: 'courses' as const, label: 'Cursos', icon: '📚' },
     { id: 'modules' as const, label: 'Módulos', icon: '📦' },
     { id: 'lessons' as const, label: 'Clases', icon: '🎬' },
   ];
@@ -173,67 +226,34 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
             {tab === 'settings' && (
               <div className="space-y-6">
                 <h2 style={{ color: 'white', fontWeight: 600, fontSize: '16px' }}>Configuración del Sitio</h2>
-
-                {/* Banner Preview + URL */}
                 <div style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: '12px', padding: '20px' }}>
-                  <label style={{ display: 'block', fontSize: '13px', color: '#CCC', marginBottom: '8px', fontWeight: 600 }}>
-                    Banner / Imagen de Portada
-                  </label>
+                  <label style={{ display: 'block', fontSize: '13px', color: '#CCC', marginBottom: '8px', fontWeight: 600 }}>Banner / Imagen de Portada</label>
                   {bannerUrl && (
                     <div className="mb-3 rounded-lg overflow-hidden" style={{ background: '#000' }}>
                       <img src={bannerUrl} alt="Banner preview" style={{ width: '100%', height: 'auto', maxHeight: '200px', objectFit: 'contain' }} />
                     </div>
                   )}
-                  <input
-                    className="input-dark"
-                    value={bannerUrl}
-                    onChange={e => setBannerUrl(e.target.value)}
-                    placeholder="URL de la imagen del banner (ej: https://...)"
-                  />
-                  <p style={{ fontSize: '11px', color: '#555', marginTop: '6px' }}>
-                    Pega la URL de la imagen que quieres usar como banner principal. Recomendado: 1500x400px.
-                  </p>
+                  <input className="input-dark" value={bannerUrl} onChange={e => setBannerUrl(e.target.value)} placeholder="URL de la imagen del banner (ej: https://...)" />
+                  <p style={{ fontSize: '11px', color: '#555', marginTop: '6px' }}>Pega la URL de la imagen que quieres usar como banner principal. Recomendado: 1500x400px.</p>
                 </div>
-
-                {/* Logo */}
                 <div style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: '12px', padding: '20px' }}>
-                  <label style={{ display: 'block', fontSize: '13px', color: '#CCC', marginBottom: '8px', fontWeight: 600 }}>
-                    Logo
-                  </label>
+                  <label style={{ display: 'block', fontSize: '13px', color: '#CCC', marginBottom: '8px', fontWeight: 600 }}>Logo</label>
                   {logoUrl && (
                     <div className="mb-3 p-4 rounded-lg" style={{ background: '#111' }}>
                       <img src={logoUrl} alt="Logo preview" style={{ height: '40px', objectFit: 'contain' }} />
                     </div>
                   )}
-                  <input
-                    className="input-dark"
-                    value={logoUrl}
-                    onChange={e => setLogoUrl(e.target.value)}
-                    placeholder="URL del logo (ej: https://...)"
-                  />
+                  <input className="input-dark" value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="URL del logo (ej: https://...)" />
                 </div>
-
-                {/* Site Title */}
                 <div style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: '12px', padding: '20px' }}>
-                  <label style={{ display: 'block', fontSize: '13px', color: '#CCC', marginBottom: '8px', fontWeight: 600 }}>
-                    Título del Sitio
-                  </label>
-                  <input
-                    className="input-dark"
-                    value={siteTitle}
-                    onChange={e => setSiteTitle(e.target.value)}
-                    placeholder="Código V"
-                  />
+                  <label style={{ display: 'block', fontSize: '13px', color: '#CCC', marginBottom: '8px', fontWeight: 600 }}>Título del Sitio</label>
+                  <input className="input-dark" value={siteTitle} onChange={e => setSiteTitle(e.target.value)} placeholder="Código V" />
                 </div>
-
-                {/* Save Button */}
                 <div className="flex items-center gap-3">
                   <button onClick={saveSettings} disabled={savingSettings} className="btn-red px-6 py-3" style={{ opacity: savingSettings ? 0.6 : 1 }}>
                     {savingSettings ? 'Guardando...' : 'Guardar Configuración'}
                   </button>
-                  {settingsSaved && (
-                    <span className="text-sm animate-fade-in" style={{ color: '#22C55E' }}>✓ Guardado correctamente</span>
-                  )}
+                  {settingsSaved && <span className="text-sm animate-fade-in" style={{ color: '#22C55E' }}>✓ Guardado correctamente</span>}
                 </div>
               </div>
             )}
@@ -279,7 +299,98 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
               </div>
             )}
 
+            {/* ═══════════════════════════════════════ */}
+            {/* COURSES TAB */}
+            {/* ═══════════════════════════════════════ */}
+            {tab === 'courses' && (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 style={{ color: 'white', fontWeight: 600, fontSize: '16px' }}>Cursos ({courses.length})</h2>
+                  <button className="btn-red text-sm px-4 py-2" onClick={() => setShowAddCourse(true)}>+ Nuevo Curso</button>
+                </div>
+                <p className="text-xs mb-4" style={{ color: '#666' }}>Los cursos agrupan módulos en el dashboard. Cada curso aparece como una sección separada.</p>
+                <div className="space-y-3">
+                  {courses.map(c => (
+                    <div key={c.id} style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: '12px', padding: '16px' }}>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4 min-w-0">
+                          {c.thumbnail_url ? (
+                            <img src={c.thumbnail_url} alt={c.title} style={{ width: '56px', height: '56px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0 }} />
+                          ) : (
+                            <div className="flex items-center justify-center flex-shrink-0" style={{ width: '56px', height: '56px', borderRadius: '8px', background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.3)' }}>
+                              <span style={{ fontSize: '20px' }}>📚</span>
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold truncate" style={{ color: 'white' }}>{c.title}</p>
+                            <div className="flex items-center gap-3 mt-1">
+                              <span className="text-xs" style={{ color: '#888' }}>{c.module_count} módulos</span>
+                              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: c.content_type === 'pdf' ? 'rgba(59,130,246,0.15)' : 'rgba(230,57,70,0.15)', color: c.content_type === 'pdf' ? '#3B82F6' : '#E63946', fontSize: '10px' }}>
+                                {c.content_type === 'pdf' ? 'PDF' : 'Video'}
+                              </span>
+                              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: c.is_published ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)', color: c.is_published ? '#22C55E' : '#666', fontSize: '10px' }}>
+                                {c.is_published ? 'Publicado' : 'Oculto'}
+                              </span>
+                            </div>
+                            {c.description && <p className="text-xs mt-1 truncate" style={{ color: '#555' }}>{c.description}</p>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button onClick={() => setEditCourse(c)} className="text-xs px-3 py-1.5 rounded-lg" style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.3)', color: '#E63946', cursor: 'pointer' }}>
+                            Editar
+                          </button>
+                          <button onClick={() => deleteCourse(c.id)} className="text-xs px-2 py-1.5 rounded-lg" style={{ background: 'transparent', border: '1px solid #333', color: '#666', cursor: 'pointer' }}>
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Modules in this course */}
+                      {(() => {
+                        const courseModules = modules.filter(m => m.course_id === c.id);
+                        if (courseModules.length === 0) return (
+                          <p className="text-xs mt-3 pt-3" style={{ color: '#555', borderTop: '1px solid #2A2A2A' }}>Sin módulos asignados. Ve a la pestaña "Módulos" para crear y asignar módulos a este curso.</p>
+                        );
+                        return (
+                          <div className="mt-3 pt-3 space-y-1.5" style={{ borderTop: '1px solid #2A2A2A' }}>
+                            {courseModules.map(m => (
+                              <div key={m.id} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: '#111' }}>
+                                <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ background: '#E63946', color: 'white', fontSize: '9px' }}>#{m.position}</span>
+                                <span className="text-xs truncate" style={{ color: '#CCC' }}>{m.title}</span>
+                                <span className="text-xs ml-auto" style={{ color: '#555' }}>{m.lesson_count} clases</span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Unassigned modules */}
+                {(() => {
+                  const unassigned = modules.filter(m => !m.course_id);
+                  if (unassigned.length === 0) return null;
+                  return (
+                    <div className="mt-6">
+                      <h3 className="text-sm font-medium mb-3" style={{ color: '#E6A23C' }}>Módulos sin curso asignado ({unassigned.length})</h3>
+                      <div className="space-y-2">
+                        {unassigned.map(m => (
+                          <div key={m.id} className="flex items-center justify-between px-4 py-3 rounded-lg" style={{ background: '#1A1A1A', border: '1px dashed #E6A23C40' }}>
+                            <span className="text-sm" style={{ color: '#CCC' }}>{m.title}</span>
+                            <span className="text-xs" style={{ color: '#666' }}>Asigna un curso en "Módulos" → Editar</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* ═══════════════════════════════════════ */}
             {/* MODULES TAB */}
+            {/* ═══════════════════════════════════════ */}
             {tab === 'modules' && (
               <div>
                 <div className="flex items-center justify-between mb-4">
@@ -287,31 +398,41 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
                   <button className="btn-red text-sm px-4 py-2" onClick={() => setShowAddModule(true)}>+ Agregar</button>
                 </div>
                 <div className="space-y-2">
-                  {modules.map(m => (
-                    <div key={m.id} style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: '10px', padding: '14px 16px' }}>
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          {m.thumbnail_url ? (
-                            <img src={m.thumbnail_url} alt={m.title} style={{ width: '48px', height: '64px', objectFit: 'cover', borderRadius: '6px', flexShrink: 0 }} />
-                          ) : (
-                            <span className="text-xs font-bold px-2 py-0.5 rounded flex-shrink-0" style={{ background: '#E63946', color: 'white' }}>#{m.position}</span>
-                          )}
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium truncate" style={{ color: 'white' }}>{m.title}</p>
-                            <p className="text-xs" style={{ color: '#666' }}>{m.lesson_count} clases</p>
+                  {modules.map(m => {
+                    const course = courses.find(c => c.id === m.course_id);
+                    return (
+                      <div key={m.id} style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: '10px', padding: '14px 16px' }}>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            {m.thumbnail_url ? (
+                              <img src={m.thumbnail_url} alt={m.title} style={{ width: '48px', height: '64px', objectFit: 'cover', borderRadius: '6px', flexShrink: 0 }} />
+                            ) : (
+                              <span className="text-xs font-bold px-2 py-0.5 rounded flex-shrink-0" style={{ background: '#E63946', color: 'white' }}>#{m.position}</span>
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate" style={{ color: 'white' }}>{m.title}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <p className="text-xs" style={{ color: '#666' }}>{m.lesson_count} clases</p>
+                                {course && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(59,130,246,0.1)', color: '#3B82F6', fontSize: '10px' }}>{course.title}</span>}
+                                {!course && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(230,163,60,0.1)', color: '#E6A23C', fontSize: '10px' }}>Sin curso</span>}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: m.is_published ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)', color: m.is_published ? '#22C55E' : '#666' }}>
+                              {m.is_published ? 'Publicado' : 'Oculto'}
+                            </span>
+                            <button onClick={() => setEditModule(m)} className="text-xs px-3 py-1.5 rounded-lg" style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.3)', color: '#E63946', cursor: 'pointer' }}>
+                              Editar
+                            </button>
+                            <button onClick={() => deleteModule(m.id)} className="text-xs px-2 py-1.5 rounded-lg" style={{ background: 'transparent', border: '1px solid #333', color: '#666', cursor: 'pointer' }}>
+                              ✕
+                            </button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: m.is_published ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)', color: m.is_published ? '#22C55E' : '#666' }}>
-                            {m.is_published ? 'Publicado' : 'Oculto'}
-                          </span>
-                          <button onClick={() => setEditModule(m)} className="text-xs px-3 py-1.5 rounded-lg" style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.3)', color: '#E63946', cursor: 'pointer' }}>
-                            Editar
-                          </button>
-                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -354,6 +475,10 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
         )}
       </div>
 
+      {/* ═══════════════════════════════════════ */}
+      {/* MODALS */}
+      {/* ═══════════════════════════════════════ */}
+
       {/* Modal: Add User */}
       {showAddUser && (
         <Modal title="Agregar Usuario" onClose={() => setShowAddUser(false)}>
@@ -370,11 +495,68 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
         </Modal>
       )}
 
+      {/* Modal: Add Course */}
+      {showAddCourse && (
+        <Modal title="Nuevo Curso" onClose={() => setShowAddCourse(false)}>
+          <form onSubmit={addCourse} className="space-y-4">
+            <Field label="Nombre del Curso"><input className="input-dark" value={newCourse.title} onChange={e => setNewCourse(p => ({ ...p, title: e.target.value }))} required placeholder="Ej: Secretos Avanzados" /></Field>
+            <Field label="Descripción"><textarea className="input-dark" rows={2} value={newCourse.description} onChange={e => setNewCourse(p => ({ ...p, description: e.target.value }))} placeholder="Descripción del curso..." style={{ resize: 'none' }} /></Field>
+            <Field label="URL de la Thumbnail"><input className="input-dark" value={newCourse.thumbnailUrl} onChange={e => setNewCourse(p => ({ ...p, thumbnailUrl: e.target.value }))} placeholder="https://..." /></Field>
+            <Field label="Tipo de Contenido">
+              <select className="input-dark" value={newCourse.contentType} onChange={e => setNewCourse(p => ({ ...p, contentType: e.target.value }))}>
+                <option value="video">Video (Módulos con clases de video)</option>
+                <option value="pdf">PDF (Landing page con PDFs scrollables)</option>
+              </select>
+            </Field>
+            <ModalButtons onCancel={() => setShowAddCourse(false)} submitLabel="Crear Curso" />
+          </form>
+        </Modal>
+      )}
+
+      {/* Modal: Edit Course */}
+      {editCourse && (
+        <Modal title="Editar Curso" onClose={() => setEditCourse(null)}>
+          <form onSubmit={updateCourse} className="space-y-4">
+            <Field label="Nombre del Curso">
+              <input className="input-dark" value={editCourse.title} onChange={e => setEditCourse(p => p ? { ...p, title: e.target.value } : null)} required />
+            </Field>
+            <Field label="Descripción">
+              <textarea className="input-dark" rows={2} value={editCourse.description || ''} onChange={e => setEditCourse(p => p ? { ...p, description: e.target.value } : null)} style={{ resize: 'none' }} />
+            </Field>
+            <Field label="URL de la Thumbnail">
+              <input className="input-dark" value={editCourse.thumbnail_url || ''} onChange={e => setEditCourse(p => p ? { ...p, thumbnail_url: e.target.value } : null)} />
+              {editCourse.thumbnail_url && (
+                <div className="mt-3 rounded-lg overflow-hidden" style={{ background: '#000' }}>
+                  <img src={editCourse.thumbnail_url} alt="Preview" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain' }} />
+                </div>
+              )}
+            </Field>
+            <Field label="Tipo de Contenido">
+              <select className="input-dark" value={editCourse.content_type} onChange={e => setEditCourse(p => p ? { ...p, content_type: e.target.value } : null)}>
+                <option value="video">Video</option>
+                <option value="pdf">PDF</option>
+              </select>
+            </Field>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={editCourse.is_published} onChange={e => setEditCourse(p => p ? { ...p, is_published: e.target.checked } : null)} />
+              <span className="text-sm" style={{ color: '#CCC' }}>Publicado</span>
+            </label>
+            <ModalButtons onCancel={() => setEditCourse(null)} submitLabel="Guardar" />
+          </form>
+        </Modal>
+      )}
+
       {/* Modal: Add Module */}
       {showAddModule && (
         <Modal title="Agregar Módulo" onClose={() => setShowAddModule(false)}>
           <form onSubmit={addModule} className="space-y-4">
-            <Field label="Título"><input className="input-dark" value={newModule.title} onChange={e => setNewModule(p => ({ ...p, title: e.target.value }))} required placeholder="Módulo #7: Título" /></Field>
+            <Field label="Curso">
+              <select className="input-dark" value={newModule.courseId} onChange={e => setNewModule(p => ({ ...p, courseId: e.target.value }))} required>
+                <option value="">Seleccionar curso...</option>
+                {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+              </select>
+            </Field>
+            <Field label="Título"><input className="input-dark" value={newModule.title} onChange={e => setNewModule(p => ({ ...p, title: e.target.value }))} required placeholder="Módulo #5: Título" /></Field>
             <Field label="Descripción"><textarea className="input-dark" rows={2} value={newModule.description} onChange={e => setNewModule(p => ({ ...p, description: e.target.value }))} placeholder="Descripción del módulo..." style={{ resize: 'none' }} /></Field>
             <Field label="URL de la Thumbnail"><input className="input-dark" value={newModule.thumbnailUrl} onChange={e => setNewModule(p => ({ ...p, thumbnailUrl: e.target.value }))} placeholder="https://..." /></Field>
             <ModalButtons onCancel={() => setShowAddModule(false)} submitLabel="Agregar" />
@@ -385,21 +567,13 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
       {/* Modal: Edit Module */}
       {editModule && (
         <Modal title="Editar Módulo" onClose={() => setEditModule(null)}>
-          <form onSubmit={async (e) => {
-            e.preventDefault();
-            await fetch(`/api/admin/modules/${editModule.id}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                title: editModule.title,
-                description: editModule.description,
-                thumbnailUrl: editModule.thumbnail_url,
-                isPublished: editModule.is_published,
-              }),
-            });
-            setEditModule(null);
-            loadAll();
-          }} className="space-y-4">
+          <form onSubmit={updateModule} className="space-y-4">
+            <Field label="Curso">
+              <select className="input-dark" value={editModule.course_id || ''} onChange={e => setEditModule(p => p ? { ...p, course_id: e.target.value ? parseInt(e.target.value) : null } : null)}>
+                <option value="">Sin curso asignado</option>
+                {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+              </select>
+            </Field>
             <Field label="Título">
               <input className="input-dark" value={editModule.title} onChange={e => setEditModule(p => p ? { ...p, title: e.target.value } : null)} required />
             </Field>
@@ -407,13 +581,12 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
               <textarea className="input-dark" rows={2} value={editModule.description || ''} onChange={e => setEditModule(p => p ? { ...p, description: e.target.value } : null)} style={{ resize: 'none' }} />
             </Field>
             <Field label="URL de la Foto de Capa">
-              <input className="input-dark" value={editModule.thumbnail_url || ''} onChange={e => setEditModule(p => p ? { ...p, thumbnail_url: e.target.value } : null)} placeholder="https://..." />
+              <input className="input-dark" value={editModule.thumbnail_url || ''} onChange={e => setEditModule(p => p ? { ...p, thumbnail_url: e.target.value } : null)} />
               {editModule.thumbnail_url && (
                 <div className="mt-3 rounded-lg overflow-hidden" style={{ background: '#000' }}>
                   <img src={editModule.thumbnail_url} alt="Preview" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain' }} />
                 </div>
               )}
-              <p style={{ fontSize: '11px', color: '#555', marginTop: '6px' }}>Pega la URL de la nueva imagen de capa del módulo.</p>
             </Field>
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={editModule.is_published} onChange={e => setEditModule(p => p ? { ...p, is_published: e.target.checked } : null)} />

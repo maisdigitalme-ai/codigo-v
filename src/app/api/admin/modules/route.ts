@@ -21,13 +21,13 @@ export async function POST(request: Request) {
   const session = await getSession();
   if (!session?.isAdmin) return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
 
-  const { title, description, thumbnailUrl } = await request.json();
+  const { title, description, thumbnailUrl, courseId, courseGroup } = await request.json();
   const maxPos = await sql`SELECT COALESCE(MAX(position), 0) as max FROM modules`;
   const position = parseInt(maxPos[0].max) + 1;
 
   const newModule = await sql`
-    INSERT INTO modules (title, description, thumbnail_url, position)
-    VALUES (${title}, ${description || ''}, ${thumbnailUrl || ''}, ${position})
+    INSERT INTO modules (title, description, thumbnail_url, position, course_id, course_group)
+    VALUES (${title}, ${description || ''}, ${thumbnailUrl || ''}, ${position}, ${courseId || null}, ${courseGroup || 'codigo-v'})
     RETURNING *
   `;
 

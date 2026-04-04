@@ -6,18 +6,16 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const session = await getSession();
   if (!session?.isAdmin) return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
 
-  const { title, description, thumbnailUrl, isPublished, courseId } = await request.json();
-
-  if (courseId !== undefined) {
-    await sql`UPDATE modules SET course_id = ${courseId} WHERE id = ${params.id}`;
-  }
+  const { title, description, thumbnailUrl, isPublished, contentType, position } = await request.json();
 
   await sql`
-    UPDATE modules SET
+    UPDATE courses SET
       title = COALESCE(${title ?? null}, title),
       description = COALESCE(${description ?? null}, description),
       thumbnail_url = COALESCE(${thumbnailUrl ?? null}, thumbnail_url),
-      is_published = COALESCE(${isPublished ?? null}, is_published)
+      is_published = COALESCE(${isPublished ?? null}, is_published),
+      content_type = COALESCE(${contentType ?? null}, content_type),
+      position = COALESCE(${position ?? null}, position)
     WHERE id = ${params.id}
   `;
 
@@ -28,6 +26,8 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   const session = await getSession();
   if (!session?.isAdmin) return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
 
-  await sql`DELETE FROM modules WHERE id = ${params.id}`;
+  // Unlink modules from this course first
+  await sql`UPDATE modules SET course_id = NULL WHERE course_id = ${params.id}`;
+  await sql`DELETE FROM courses WHERE id = ${params.id}`;
   return NextResponse.json({ success: true });
 }

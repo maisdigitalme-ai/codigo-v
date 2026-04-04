@@ -14,6 +14,18 @@ interface Module {
   lesson_count: number;
   completed_count: number;
   course_group?: string;
+  course_id?: number;
+}
+
+interface Course {
+  id: number;
+  title: string;
+  description: string;
+  thumbnail_url: string;
+  position: number;
+  slug: string;
+  content_type: string;
+  modules: Module[];
 }
 
 interface User {
@@ -29,20 +41,30 @@ interface Settings {
 }
 
 export default function DashboardClient({
-  modules,
+  courses = [],
+  modules = [],
   secretosModules = [],
+  unassignedModules = [],
   user,
   settings,
 }: {
+  courses?: Course[];
   modules: Module[];
   secretosModules?: Module[];
+  unassignedModules?: Module[];
   user: User;
   settings: Settings;
 }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const allModules = [...modules, ...secretosModules];
+  // Use courses if available, otherwise fall back to old behavior
+  const hasCourses = courses.length > 0;
+
+  const allModules = hasCourses
+    ? courses.flatMap(c => c.modules)
+    : [...modules, ...secretosModules];
+
   const totalLessons = allModules.reduce((a, m) => a + Number(m.lesson_count), 0);
   const totalCompleted = allModules.reduce((a, m) => a + Number(m.completed_count), 0);
   const overallProgress = totalLessons > 0 ? Math.round((totalCompleted / totalLessons) * 100) : 0;
@@ -193,58 +215,66 @@ export default function DashboardClient({
       </div>
 
       {/* ═══════════════════════════════════════════════════ */}
-      {/* COURSE 1: Código V */}
+      {/* DYNAMIC COURSES FROM DATABASE */}
       {/* ═══════════════════════════════════════════════════ */}
-      <div className="max-w-7xl mx-auto px-4 pt-6 pb-2">
-        <h2 style={{ color: 'white', fontSize: '16px', fontWeight: 600, fontFamily: 'var(--font-inter)' }}>
-          Código V
-        </h2>
-      </div>
-
-      <main className="max-w-7xl mx-auto px-4 py-4 pb-8">
-        {/* Desktop: Grid layout */}
-        <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {modules.map((module) => (
-            <ModuleCard key={module.id} module={module} />
-          ))}
-        </div>
-
-        {/* Mobile: Horizontal scroll */}
-        <div className="md:hidden overflow-x-auto pb-4" style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
-          <div className="flex gap-3" style={{ width: 'max-content' }}>
-            {modules.map((module) => (
-              <div key={module.id} style={{ width: '160px', scrollSnapAlign: 'start', flexShrink: 0 }}>
-                <ModuleCard module={module} />
-              </div>
-            ))}
-          </div>
-        </div>
-      </main>
-
-      {/* ═══════════════════════════════════════════════════ */}
-      {/* COURSE 2: Secretos Sexuales que Todo Hombre Debe Saber */}
-      {/* ═══════════════════════════════════════════════════ */}
-      {secretosModules.length > 0 && (
+      {hasCourses ? (
         <>
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+          {courses.map((course, idx) => (
+            <div key={course.id}>
+              {idx > 0 && <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />}
+              
+              <div className="max-w-7xl mx-auto px-4 pt-6 pb-2">
+                <h2 style={{ color: 'white', fontSize: '16px', fontWeight: 600, fontFamily: 'var(--font-inter)' }}>
+                  {course.title}
+                </h2>
+              </div>
+
+              <div className="max-w-7xl mx-auto px-4 py-4 pb-8">
+                {course.modules.length > 0 ? (
+                  <>
+                    {/* Desktop: Grid layout */}
+                    <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                      {course.modules.map((module) => (
+                        <ModuleCard key={module.id} module={module} />
+                      ))}
+                    </div>
+
+                    {/* Mobile: Horizontal scroll */}
+                    <div className="md:hidden overflow-x-auto pb-4" style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
+                      <div className="flex gap-3" style={{ width: 'max-content' }}>
+                        {course.modules.map((module) => (
+                          <div key={module.id} style={{ width: '160px', scrollSnapAlign: 'start', flexShrink: 0 }}>
+                            <ModuleCard module={module} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm py-4" style={{ color: '#555' }}>Este curso aún no tiene módulos.</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </>
+      ) : (
+        /* Fallback: Old behavior with hardcoded course groups */
+        <>
           <div className="max-w-7xl mx-auto px-4 pt-6 pb-2">
             <h2 style={{ color: 'white', fontSize: '16px', fontWeight: 600, fontFamily: 'var(--font-inter)' }}>
-              Secretos Sexuales que Todo Hombre Debe Saber
+              Código V
             </h2>
           </div>
 
-          <main className="max-w-7xl mx-auto px-4 py-4 pb-12">
-            {/* Desktop: Grid layout */}
+          <main className="max-w-7xl mx-auto px-4 py-4 pb-8">
             <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {secretosModules.map((module) => (
+              {modules.map((module) => (
                 <ModuleCard key={module.id} module={module} />
               ))}
             </div>
-
-            {/* Mobile: Horizontal scroll */}
             <div className="md:hidden overflow-x-auto pb-4" style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
               <div className="flex gap-3" style={{ width: 'max-content' }}>
-                {secretosModules.map((module) => (
+                {modules.map((module) => (
                   <div key={module.id} style={{ width: '160px', scrollSnapAlign: 'start', flexShrink: 0 }}>
                     <ModuleCard module={module} />
                   </div>
@@ -252,6 +282,33 @@ export default function DashboardClient({
               </div>
             </div>
           </main>
+
+          {secretosModules && secretosModules.length > 0 && (
+            <>
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+              <div className="max-w-7xl mx-auto px-4 pt-6 pb-2">
+                <h2 style={{ color: 'white', fontSize: '16px', fontWeight: 600, fontFamily: 'var(--font-inter)' }}>
+                  Secretos Sexuales que Todo Hombre Debe Saber
+                </h2>
+              </div>
+              <main className="max-w-7xl mx-auto px-4 py-4 pb-12">
+                <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {secretosModules.map((module) => (
+                    <ModuleCard key={module.id} module={module} />
+                  ))}
+                </div>
+                <div className="md:hidden overflow-x-auto pb-4" style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
+                  <div className="flex gap-3" style={{ width: 'max-content' }}>
+                    {secretosModules.map((module) => (
+                      <div key={module.id} style={{ width: '160px', scrollSnapAlign: 'start', flexShrink: 0 }}>
+                        <ModuleCard module={module} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </main>
+            </>
+          )}
         </>
       )}
     </div>

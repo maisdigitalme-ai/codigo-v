@@ -8,6 +8,12 @@ export default async function DashboardPage() {
   const session = await getSession();
   if (!session) redirect('/login');
 
+  // Fetch courses
+  const courses = await sql`
+    SELECT * FROM courses WHERE is_published = true ORDER BY position
+  `;
+
+  // Fetch all modules with progress
   const modules = await sql`
     SELECT m.*, 
       COUNT(DISTINCT l.id) as lesson_count,
@@ -20,9 +26,19 @@ export default async function DashboardPage() {
     ORDER BY m.position
   `;
 
-  // Separate modules by course group
-  const codigoVModules = modules.filter((m: any) => !m.course_group || m.course_group === 'codigo-v');
-  const secretosModules = modules.filter((m: any) => m.course_group === 'secretos-sexuales');
+  // Group modules by course
+  const courseGroups = courses.map((course: any) => ({
+    ...course,
+    modules: modules.filter((m: any) => m.course_id === course.id),
+  }));
+
+  // Also get unassigned modules (fallback to old course_group logic)
+  const assignedIds = new Set(modules.filter((m: any) => m.course_id).map((m: any) => m.id));
+  const unassignedModules = modules.filter((m: any) => !assignedIds.has(m.id));
+
+  // If no courses exist yet, fall back to old behavior
+  const fallbackCodigoV = modules.filter((m: any) => !m.course_group || m.course_group === 'codigo-v');
+  const fallbackSecretos = modules.filter((m: any) => m.course_group === 'secretos-sexuales');
 
   // Fetch site settings
   const settingsRows = await sql`SELECT key, value FROM site_settings`;
@@ -33,8 +49,10 @@ export default async function DashboardPage() {
 
   return (
     <DashboardClient
-      modules={JSON.parse(JSON.stringify(codigoVModules))}
-      secretosModules={JSON.parse(JSON.stringify(secretosModules))}
+      courses={JSON.parse(JSON.stringify(courseGroups))}
+      modules={JSON.parse(JSON.stringify(fallbackCodigoV))}
+      secretosModules={JSON.parse(JSON.stringify(fallbackSecretos))}
+      unassignedModules={JSON.parse(JSON.stringify(unassignedModules))}
       user={{ name: session.name, email: session.email, isAdmin: session.isAdmin }}
       settings={settings}
     />

@@ -35,6 +35,29 @@ export async function setupDatabase() {
     END $$;
   `;
 
+  // ═══ COURSES TABLE ═══
+  await sql`
+    CREATE TABLE IF NOT EXISTS courses (
+      id SERIAL PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      description TEXT,
+      thumbnail_url TEXT,
+      position INTEGER NOT NULL DEFAULT 0,
+      is_published BOOLEAN DEFAULT TRUE,
+      slug VARCHAR(100) UNIQUE,
+      content_type VARCHAR(50) DEFAULT 'video',
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
+
+  // Add course_id to modules if it doesn't exist
+  await sql`
+    DO $$ BEGIN
+      ALTER TABLE modules ADD COLUMN IF NOT EXISTS course_id INTEGER REFERENCES courses(id) ON DELETE SET NULL;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+  `;
+
   await sql`
     CREATE TABLE IF NOT EXISTS lessons (
       id SERIAL PRIMARY KEY,
@@ -171,6 +194,32 @@ export async function setupDatabase() {
   await sql`
     UPDATE modules SET course_group = 'secretos-sexuales'
     WHERE title ILIKE '%secretos%' AND course_group = 'codigo-v'
+  `;
+
+  // Migration: Seed default courses if none exist
+  const existingCourses = await sql`SELECT COUNT(*) as count FROM courses`;
+  if (parseInt(existingCourses[0].count) === 0) {
+    await sql`
+      INSERT INTO courses (title, description, position, slug, content_type) VALUES
+      ('Código V', 'Domina el Placer Femenino — El programa completo para transformar tu vida sexual.', 1, 'codigo-v', 'video'),
+      ('Secretos Sexuales que Todo Hombre Debe Saber', 'Los secretos mejor guardados sobre la sexualidad femenina revelados.', 2, 'secretos-sexuales', 'pdf')
+    `;
+  }
+
+  // Migration: Link existing modules to courses by course_group
+  await sql`
+    UPDATE modules SET course_id = (
+      SELECT id FROM courses WHERE slug = 'codigo-v' LIMIT 1
+    )
+    WHERE (course_group = 'codigo-v' OR course_group IS NULL) AND course_id IS NULL
+    AND EXISTS (SELECT 1 FROM courses WHERE slug = 'codigo-v')
+  `;
+  await sql`
+    UPDATE modules SET course_id = (
+      SELECT id FROM courses WHERE slug = 'secretos-sexuales' LIMIT 1
+    )
+    WHERE course_group = 'secretos-sexuales' AND course_id IS NULL
+    AND EXISTS (SELECT 1 FROM courses WHERE slug = 'secretos-sexuales')
   `;
 
   // Ensure site_settings table exists
