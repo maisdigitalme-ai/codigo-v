@@ -240,6 +240,20 @@ export async function setupDatabase() {
     END $$;
   `;
 
+  // Add drip content fields to courses
+  await sql`
+    DO $$ BEGIN
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS drip_enabled BOOLEAN DEFAULT FALSE;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+  `;
+  await sql`
+    DO $$ BEGIN
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS drip_days INTEGER DEFAULT 0;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+  `;
+
   // Add drip content fields to modules
   await sql`
     DO $$ BEGIN

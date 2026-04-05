@@ -39,8 +39,15 @@ export default async function DashboardPage() {
     return { ...m, is_locked: isLocked, days_remaining: daysRemaining };
   });
 
+  // Calculate drip lock status for each course (admin always sees everything)
+  const coursesWithDrip = courses.map((c: any) => {
+    const isLocked = !session.isAdmin && c.drip_enabled && c.drip_days > 0 && daysSinceEnrollment < c.drip_days;
+    const daysRemaining = isLocked ? c.drip_days - daysSinceEnrollment : 0;
+    return { ...c, is_locked: isLocked, days_remaining: daysRemaining };
+  });
+
   // Group modules by course
-  const courseGroups = courses.map((course: any) => ({
+  const courseGroups = coursesWithDrip.map((course: any) => ({
     ...course,
     modules: modulesWithDrip.filter((m: any) => m.course_id === course.id),
   }));

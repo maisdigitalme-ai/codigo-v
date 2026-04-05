@@ -28,6 +28,8 @@ interface Course {
   slug: string;
   content_type: string;
   modules: Module[];
+  is_locked?: boolean;
+  days_remaining?: number;
 }
 
 interface User {
@@ -226,11 +228,34 @@ export default function DashboardClient({
               {idx > 0 && <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />}
               
               <div className="max-w-7xl mx-auto px-4 pt-6 pb-2">
-                <h2 style={{ color: 'white', fontSize: '16px', fontWeight: 600, fontFamily: 'var(--font-inter)' }}>
-                  {course.title}
-                </h2>
+                <div className="flex items-center gap-3">
+                  <h2 style={{ color: 'white', fontSize: '16px', fontWeight: 600, fontFamily: 'var(--font-inter)' }}>
+                    {course.title}
+                  </h2>
+                  {course.is_locked && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium" style={{ background: 'rgba(245,158,11,0.15)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.25)' }}>
+                      <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0110 0v4"/>
+                      </svg>
+                      Disponible en {course.days_remaining} día{(course.days_remaining || 0) !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
               </div>
 
+              {course.is_locked ? (
+                <div className="max-w-7xl mx-auto px-4 py-6 pb-8">
+                  <div className="flex flex-col items-center justify-center py-10 rounded-xl" style={{ background: 'rgba(245,158,11,0.05)', border: '1px dashed rgba(245,158,11,0.2)' }}>
+                    <svg width="40" height="40" fill="none" stroke="#F59E0B" strokeWidth="1.5" viewBox="0 0 24 24" style={{ opacity: 0.6 }}>
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0110 0v4"/>
+                    </svg>
+                    <p className="mt-3 text-sm font-medium" style={{ color: '#F59E0B' }}>Este curso se desbloqueará en {course.days_remaining} día{(course.days_remaining || 0) !== 1 ? 's' : ''}</p>
+                    <p className="mt-1 text-xs" style={{ color: '#666' }}>El contenido se libera automáticamente después del período configurado</p>
+                  </div>
+                </div>
+              ) : (
               <div className="max-w-7xl mx-auto px-4 py-4 pb-8">
                 {course.modules.length > 0 ? (
                   <>
@@ -256,6 +281,7 @@ export default function DashboardClient({
                   <p className="text-sm py-4" style={{ color: '#555' }}>Este curso aún no tiene módulos.</p>
                 )}
               </div>
+              )}
             </div>
           ))}
         </>

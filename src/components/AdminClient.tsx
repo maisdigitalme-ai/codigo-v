@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 interface User { id: number; name: string; email: string; is_admin: boolean; is_active: boolean; created_at: string; }
-interface Course { id: number; title: string; description: string; thumbnail_url: string; position: number; is_published: boolean; slug: string; content_type: string; module_count: number; }
+interface Course { id: number; title: string; description: string; thumbnail_url: string; position: number; is_published: boolean; slug: string; content_type: string; module_count: number; drip_enabled: boolean; drip_days: number; }
 interface Module { id: number; title: string; description: string; thumbnail_url: string; position: number; is_published: boolean; lesson_count: number; course_id: number | null; course_group: string; drip_enabled: boolean; drip_days: number; }
 interface Lesson { id: number; module_id: number; title: string; description: string; video_embed: string; position: number; is_published: boolean; is_free: boolean; duration: string; module_title: string; drip_enabled: boolean; drip_days: number; }
 
@@ -105,7 +105,7 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
     if (!editCourse) return;
     await fetch(`/api/admin/courses/${editCourse.id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: editCourse.title, description: editCourse.description, thumbnailUrl: editCourse.thumbnail_url, isPublished: editCourse.is_published, contentType: editCourse.content_type }),
+      body: JSON.stringify({ title: editCourse.title, description: editCourse.description, thumbnailUrl: editCourse.thumbnail_url, isPublished: editCourse.is_published, contentType: editCourse.content_type, dripEnabled: editCourse.drip_enabled, dripDays: editCourse.drip_days }),
     });
     setEditCourse(null);
     loadAll();
@@ -613,6 +613,35 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
               <input type="checkbox" checked={editCourse.is_published} onChange={e => setEditCourse(p => p ? { ...p, is_published: e.target.checked } : null)} />
               <span className="text-sm" style={{ color: '#CCC' }}>Publicado</span>
             </label>
+            {/* Drip Content Section */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px', marginTop: '8px' }}>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-sm font-medium" style={{ color: '#F59E0B' }}>⏱ Liberación Programada</p>
+                  <p className="text-xs" style={{ color: '#666' }}>Liberar este curso después de X días de la inscripción del alumno</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditCourse(p => p ? { ...p, drip_enabled: !p.drip_enabled } : null)}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+                  style={{ background: editCourse.drip_enabled ? '#F59E0B' : '#333' }}
+                >
+                  <span className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform" style={{ transform: editCourse.drip_enabled ? 'translateX(22px)' : 'translateX(4px)' }} />
+                </button>
+              </div>
+              {editCourse.drip_enabled && (
+                <Field label="Días después de la inscripción">
+                  <input
+                    type="number"
+                    className="input-dark"
+                    min="0"
+                    value={editCourse.drip_days || 0}
+                    onChange={e => setEditCourse(p => p ? { ...p, drip_days: parseInt(e.target.value) || 0 } : null)}
+                    placeholder="Ej: 7"
+                  />
+                </Field>
+              )}
+            </div>
             <ModalButtons onCancel={() => setEditCourse(null)} submitLabel="Guardar" />
           </form>
         </Modal>
