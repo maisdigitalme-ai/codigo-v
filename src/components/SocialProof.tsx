@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import AvatarIcon from './AvatarIcon';
 
 // ═══════════════════════════════════════════════════
 // CONTADOR CONSISTENTE — mesmo número em todas as páginas
@@ -206,12 +207,7 @@ export function SocialProofCompact() {
                 &ldquo;{t.text.substring(0, 80)}...&rdquo;
               </p>
               <div className="mt-2 flex items-center gap-2">
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
-                  style={{ background: 'rgba(230,57,70,0.15)', color: '#E63946', fontSize: '10px' }}
-                >
-                  {t.name.charAt(0)}
-                </div>
+                <AvatarIcon size={24} bgColor="rgba(230,57,70,0.15)" iconColor="#E63946" />
                 <span className="text-xs font-medium" style={{ color: '#999' }}>{t.name}</span>
               </div>
             </div>
@@ -373,17 +369,15 @@ export function SocialProofFull() {
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center font-bold"
+                    <AvatarIcon
+                      size={36}
+                      bgColor="rgba(230,57,70,0.15)"
+                      iconColor="#E63946"
                       style={{
                         background: 'linear-gradient(135deg, rgba(230,57,70,0.2) 0%, rgba(230,57,70,0.1) 100%)',
                         border: '1px solid rgba(230,57,70,0.2)',
-                        color: '#E63946',
-                        fontSize: '13px',
                       }}
-                    >
-                      {t.name.charAt(0)}
-                    </div>
+                    />
                     <div>
                       <p className="text-sm font-medium" style={{ color: 'white' }}>{t.name}</p>
                       <p className="text-xs" style={{ color: '#666' }}>{t.location}</p>

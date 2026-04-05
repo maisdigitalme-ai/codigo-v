@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { SocialProofFull } from './SocialProof';
+import AvatarIcon from './AvatarIcon';
 
 interface Module {
   id: number;
@@ -121,10 +122,9 @@ export default function DashboardClient({
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'white' }}
             >
               <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-                style={{ background: '#E63946', color: 'white' }}
+                className=""
               >
-                {user.name.charAt(0).toUpperCase()}
+                <AvatarIcon size={32} />
               </div>
               <span className="hidden sm:block text-sm" style={{ color: '#AAA' }}>{user.name}</span>
               <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ color: '#666' }}>

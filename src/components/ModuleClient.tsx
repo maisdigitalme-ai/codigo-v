@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import AvatarIcon from './AvatarIcon';
 
 interface Lesson {
   id: number;
@@ -152,9 +153,9 @@ export default function ModuleClient({
             )}
           </div>
           <div className="relative">
-            <button onClick={() => setMenuOpen(!menuOpen)} className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: '#E63946', color: 'white', border: 'none', cursor: 'pointer' }}>
-              {user.name.charAt(0).toUpperCase()}
-            </button>
+<button onClick={() => setMenuOpen(!menuOpen)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                <AvatarIcon size={32} />
+              </button>
             {menuOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
@@ -257,9 +258,7 @@ export default function ModuleClient({
                 </h3>
                 <form onSubmit={submitComment} className="mb-6">
                   <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: '#E63946', color: 'white' }}>
-                      {user.name.charAt(0).toUpperCase()}
-                    </div>
+                    <AvatarIcon size={32} />
                     <div className="flex-1">
                       <textarea
                         className="input-dark w-full"
@@ -280,9 +279,7 @@ export default function ModuleClient({
                 <div className="space-y-4">
                   {comments.map(comment => (
                     <div key={comment.id} className="flex gap-3">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: '#333', color: '#999' }}>
-                        {comment.user_name.charAt(0).toUpperCase()}
-                      </div>
+                      <AvatarIcon size={32} bgColor="#333" iconColor="#999" />
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-sm font-medium" style={{ color: 'white' }}>{comment.user_name}</span>

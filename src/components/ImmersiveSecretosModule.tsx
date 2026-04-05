@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import AvatarIcon from './AvatarIcon';
 
 /* ─── CDN base ─── */
 const CDN = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663514395106/RNwrdS82oyF4Jnnd33FcWg';
@@ -557,8 +558,8 @@ export default function ImmersiveSecretosModule({ user }: { user: User }) {
               {TOTAL_PAGES} páginas
             </span>
             <div className="relative">
-              <button onClick={() => setMenuOpen(!menuOpen)} className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: '#E63946', color: 'white', border: 'none', cursor: 'pointer' }}>
-                {user.name.charAt(0).toUpperCase()}
+              <button onClick={() => setMenuOpen(!menuOpen)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                <AvatarIcon size={32} />
               </button>
               {menuOpen && (
                 <>

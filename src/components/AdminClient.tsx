@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import AvatarIcon from './AvatarIcon';
 
 interface User { id: number; name: string; email: string; is_admin: boolean; is_active: boolean; created_at: string; }
 interface Course { id: number; title: string; description: string; thumbnail_url: string; position: number; is_published: boolean; slug: string; content_type: string; module_count: number; drip_enabled: boolean; drip_days: number; }
@@ -300,9 +301,7 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
                     <div key={u.id} style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: '10px', padding: '14px 16px' }}>
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: u.is_admin ? '#E63946' : '#333', color: 'white' }}>
-                            {u.name.charAt(0).toUpperCase()}
-                          </div>
+<AvatarIcon size={32} bgColor={u.is_admin ? '#E63946' : '#333'} iconColor="white" />
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-medium truncate" style={{ color: 'white' }}>{u.name}</p>
