@@ -231,5 +231,42 @@ export async function setupDatabase() {
     )
   `;
 
+  // ═══ DRIP CONTENT MIGRATIONS ═══
+  // Add enrolled_at to users (tracks when the student joined)
+  await sql`
+    DO $$ BEGIN
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS enrolled_at TIMESTAMP DEFAULT NOW();
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+  `;
+
+  // Add drip content fields to modules
+  await sql`
+    DO $$ BEGIN
+      ALTER TABLE modules ADD COLUMN IF NOT EXISTS drip_enabled BOOLEAN DEFAULT FALSE;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+  `;
+  await sql`
+    DO $$ BEGIN
+      ALTER TABLE modules ADD COLUMN IF NOT EXISTS drip_days INTEGER DEFAULT 0;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+  `;
+
+  // Add drip content fields to lessons
+  await sql`
+    DO $$ BEGIN
+      ALTER TABLE lessons ADD COLUMN IF NOT EXISTS drip_enabled BOOLEAN DEFAULT FALSE;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+  `;
+  await sql`
+    DO $$ BEGIN
+      ALTER TABLE lessons ADD COLUMN IF NOT EXISTS drip_days INTEGER DEFAULT 0;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+  `;
+
   console.log('✅ Banco de dados configurado com sucesso!');
 }

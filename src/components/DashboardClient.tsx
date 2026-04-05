@@ -15,6 +15,8 @@ interface Module {
   completed_count: number;
   course_group?: string;
   course_id?: number;
+  is_locked?: boolean;
+  days_remaining?: number;
 }
 
 interface Course {
@@ -319,92 +321,127 @@ function ModuleCard({ module }: { module: Module }) {
   const progress = Number(module.lesson_count) > 0
     ? Math.round((Number(module.completed_count) / Number(module.lesson_count)) * 100)
     : 0;
+  const isLocked = module.is_locked || false;
+  const daysRemaining = module.days_remaining || 0;
 
-  return (
-    <Link href={`/dashboard/modulo/${module.id}`} style={{ textDecoration: 'none', display: 'block' }}>
-      <div
-        className="rounded-xl overflow-hidden transition-all duration-300 group"
-        style={{
-          background: '#111',
-          border: '1px solid rgba(255,255,255,0.06)',
-          cursor: 'pointer',
-          position: 'relative',
-        }}
-        onMouseEnter={e => {
+  const cardContent = (
+    <div
+      className="rounded-xl overflow-hidden transition-all duration-300 group"
+      style={{
+        background: '#111',
+        border: isLocked ? '1px solid rgba(245,158,11,0.2)' : '1px solid rgba(255,255,255,0.06)',
+        cursor: isLocked ? 'default' : 'pointer',
+        position: 'relative',
+        opacity: isLocked ? 0.7 : 1,
+      }}
+      onMouseEnter={e => {
+        if (!isLocked) {
           e.currentTarget.style.transform = 'scale(1.03)';
           e.currentTarget.style.boxShadow = '0 8px 30px rgba(230,57,70,0.15)';
           e.currentTarget.style.borderColor = 'rgba(230,57,70,0.4)';
-        }}
-        onMouseLeave={e => {
+        }
+      }}
+      onMouseLeave={e => {
+        if (!isLocked) {
           e.currentTarget.style.transform = 'scale(1)';
           e.currentTarget.style.boxShadow = 'none';
           e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+        }
+      }}
+    >
+      {/* Thumbnail - Vertical aspect ratio like Cademi */}
+      <div
+        className="relative"
+        style={{
+          aspectRatio: '3/4',
+          background: 'linear-gradient(135deg, #1a0505 0%, #0A0A0A 100%)',
+          overflow: 'hidden',
         }}
       >
-        {/* Thumbnail - Vertical aspect ratio like Cademi */}
-        <div
-          className="relative"
-          style={{
-            aspectRatio: '3/4',
-            background: 'linear-gradient(135deg, #1a0505 0%, #0A0A0A 100%)',
-            overflow: 'hidden',
-          }}
-        >
-          {module.thumbnail_url ? (
-            <Image
-              src={module.thumbnail_url}
-              alt={module.title}
-              fill
-              style={{ objectFit: 'cover' }}
-              sizes="(max-width: 768px) 160px, 250px"
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div
-                className="w-16 h-16 rounded-full flex items-center justify-center"
-                style={{ background: 'rgba(230,57,70,0.1)', border: '2px solid rgba(230,57,70,0.3)' }}
-              >
+        {module.thumbnail_url ? (
+          <Image
+            src={module.thumbnail_url}
+            alt={module.title}
+            fill
+            style={{ objectFit: 'cover', filter: isLocked ? 'blur(2px) brightness(0.5)' : 'none' }}
+            sizes="(max-width: 768px) 160px, 250px"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center"
+              style={{ background: isLocked ? 'rgba(245,158,11,0.1)' : 'rgba(230,57,70,0.1)', border: isLocked ? '2px solid rgba(245,158,11,0.3)' : '2px solid rgba(230,57,70,0.3)' }}
+            >
+              {isLocked ? (
+                <svg width="28" height="28" fill="none" stroke="#F59E0B" strokeWidth="1.5" viewBox="0 0 24 24">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0110 0v4"/>
+                </svg>
+              ) : (
                 <svg width="28" height="28" fill="none" stroke="#E63946" strokeWidth="1.5" viewBox="0 0 24 24">
                   <polygon points="5 3 19 12 5 21 5 3"/>
                 </svg>
-              </div>
-            </div>
-          )}
-
-          {/* Progress indicator */}
-          {progress > 0 && (
-            <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
-              {progress === 100 ? (
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center"
-                  style={{ background: '#22C55E', boxShadow: '0 2px 8px rgba(34,197,94,0.4)' }}
-                >
-                  <svg width="10" height="10" fill="none" stroke="white" strokeWidth="3" viewBox="0 0 24 24">
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
-                </div>
-              ) : (
-                <div
-                  className="px-2 py-0.5 rounded-full text-xs font-bold"
-                  style={{ background: 'rgba(0,0,0,0.7)', color: '#22C55E', backdropFilter: 'blur(4px)', fontSize: '10px' }}
-                >
-                  {progress}%
-                </div>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Bottom progress bar */}
-        <div style={{ height: '3px', background: '#1A1A1A' }}>
-          <div style={{
-            height: '100%',
-            width: `${progress}%`,
-            background: progress === 100 ? '#22C55E' : '#E63946',
-            transition: 'width 0.5s ease',
-          }} />
-        </div>
+        {/* Drip lock overlay */}
+        {isLocked && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(1px)' }}>
+            <svg width="32" height="32" fill="none" stroke="#F59E0B" strokeWidth="1.5" viewBox="0 0 24 24">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>
+            <p className="text-xs font-semibold mt-2 text-center px-2" style={{ color: '#F59E0B' }}>
+              Disponible en {daysRemaining} día{daysRemaining !== 1 ? 's' : ''}
+            </p>
+          </div>
+        )}
+
+        {/* Progress indicator */}
+        {!isLocked && progress > 0 && (
+          <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
+            {progress === 100 ? (
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center"
+                style={{ background: '#22C55E', boxShadow: '0 2px 8px rgba(34,197,94,0.4)' }}
+              >
+                <svg width="10" height="10" fill="none" stroke="white" strokeWidth="3" viewBox="0 0 24 24">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </div>
+            ) : (
+              <div
+                className="px-2 py-0.5 rounded-full text-xs font-bold"
+                style={{ background: 'rgba(0,0,0,0.7)', color: '#22C55E', backdropFilter: 'blur(4px)', fontSize: '10px' }}
+              >
+                {progress}%
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Bottom progress bar */}
+      <div style={{ height: '3px', background: '#1A1A1A' }}>
+        <div style={{
+          height: '100%',
+          width: isLocked ? '0%' : `${progress}%`,
+          background: progress === 100 ? '#22C55E' : '#E63946',
+          transition: 'width 0.5s ease',
+        }} />
+      </div>
+    </div>
+  );
+
+  if (isLocked) {
+    return <div style={{ display: 'block' }}>{cardContent}</div>;
+  }
+
+  return (
+    <Link href={`/dashboard/modulo/${module.id}`} style={{ textDecoration: 'none', display: 'block' }}>
+      {cardContent}
     </Link>
   );
 }

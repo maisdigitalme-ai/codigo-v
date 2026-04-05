@@ -13,6 +13,8 @@ interface Lesson {
   completed: boolean;
   duration: string;
   is_free: boolean;
+  is_locked?: boolean;
+  days_remaining?: number;
 }
 
 interface Module {
@@ -344,26 +346,37 @@ export default function ModuleClient({
 }
 
 function LessonItem({ lesson, index, isActive, onClick }: { lesson: Lesson; index: number; isActive: boolean; onClick: () => void }) {
+  const isLocked = lesson.is_locked || false;
+  const daysRemaining = lesson.days_remaining || 0;
+
   return (
     <button
-      onClick={onClick}
+      onClick={() => { if (!isLocked) onClick(); }}
       className="w-full text-left transition-all duration-200"
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
         padding: '12px 16px',
-        background: isActive ? 'rgba(230,57,70,0.08)' : 'transparent',
-        borderLeft: isActive ? '3px solid #E63946' : '3px solid transparent',
-        cursor: 'pointer',
+        background: isActive && !isLocked ? 'rgba(230,57,70,0.08)' : 'transparent',
+        borderLeft: isActive && !isLocked ? '3px solid #E63946' : '3px solid transparent',
+        cursor: isLocked ? 'not-allowed' : 'pointer',
         border: 'none',
         borderRadius: '8px',
+        opacity: isLocked ? 0.5 : 1,
       }}
-      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
-      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+      onMouseEnter={e => { if (!isActive && !isLocked) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+      onMouseLeave={e => { if (!isActive && !isLocked) e.currentTarget.style.background = 'transparent'; }}
     >
       <div className="flex-shrink-0">
-        {lesson.completed ? (
+        {isLocked ? (
+          <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
+            <svg width="10" height="10" fill="none" stroke="#F59E0B" strokeWidth="2" viewBox="0 0 24 24">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>
+          </div>
+        ) : lesson.completed ? (
           <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: '#22C55E' }}>
             <svg width="10" height="10" fill="none" stroke="white" strokeWidth="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
           </div>
@@ -374,10 +387,14 @@ function LessonItem({ lesson, index, isActive, onClick }: { lesson: Lesson; inde
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p style={{ color: isActive ? '#E63946' : lesson.completed ? '#888' : 'white', fontSize: '13px', fontWeight: isActive ? 600 : 400, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <p style={{ color: isLocked ? '#666' : isActive ? '#E63946' : lesson.completed ? '#888' : 'white', fontSize: '13px', fontWeight: isActive && !isLocked ? 600 : 400, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {lesson.title}
         </p>
-        {lesson.duration && <p style={{ color: '#555', fontSize: '11px', marginTop: '2px' }}>{lesson.duration}</p>}
+        {isLocked ? (
+          <p style={{ color: '#F59E0B', fontSize: '11px', marginTop: '2px' }}>Disponible en {daysRemaining} día{daysRemaining !== 1 ? 's' : ''}</p>
+        ) : (
+          lesson.duration && <p style={{ color: '#555', fontSize: '11px', marginTop: '2px' }}>{lesson.duration}</p>
+        )}
       </div>
     </button>
   );

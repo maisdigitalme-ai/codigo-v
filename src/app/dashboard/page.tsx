@@ -13,6 +13,12 @@ export default async function DashboardPage() {
     SELECT * FROM courses WHERE is_published = true ORDER BY position
   `;
 
+  // Fetch user enrolled_at for drip content
+  const userRow = await sql`SELECT enrolled_at FROM users WHERE id = ${session.id}`;
+  const enrolledAt = userRow[0]?.enrolled_at ? new Date(userRow[0].enrolled_at) : new Date();
+  const now = new Date();
+  const daysSinceEnrollment = Math.floor((now.getTime() - enrolledAt.getTime()) / (1000 * 60 * 60 * 24));
+
   // Fetch all modules with progress
   const modules = await sql`
     SELECT m.*, 
@@ -26,19 +32,26 @@ export default async function DashboardPage() {
     ORDER BY m.position
   `;
 
+  // Calculate drip lock status for each module (admin always sees everything)
+  const modulesWithDrip = modules.map((m: any) => {
+    const isLocked = !session.isAdmin && m.drip_enabled && m.drip_days > 0 && daysSinceEnrollment < m.drip_days;
+    const daysRemaining = isLocked ? m.drip_days - daysSinceEnrollment : 0;
+    return { ...m, is_locked: isLocked, days_remaining: daysRemaining };
+  });
+
   // Group modules by course
   const courseGroups = courses.map((course: any) => ({
     ...course,
-    modules: modules.filter((m: any) => m.course_id === course.id),
+    modules: modulesWithDrip.filter((m: any) => m.course_id === course.id),
   }));
 
   // Also get unassigned modules (fallback to old course_group logic)
-  const assignedIds = new Set(modules.filter((m: any) => m.course_id).map((m: any) => m.id));
-  const unassignedModules = modules.filter((m: any) => !assignedIds.has(m.id));
+  const assignedIds = new Set(modulesWithDrip.filter((m: any) => m.course_id).map((m: any) => m.id));
+  const unassignedModules = modulesWithDrip.filter((m: any) => !assignedIds.has(m.id));
 
   // If no courses exist yet, fall back to old behavior
-  const fallbackCodigoV = modules.filter((m: any) => !m.course_group || m.course_group === 'codigo-v');
-  const fallbackSecretos = modules.filter((m: any) => m.course_group === 'secretos-sexuales');
+  const fallbackCodigoV = modulesWithDrip.filter((m: any) => !m.course_group || m.course_group === 'codigo-v');
+  const fallbackSecretos = modulesWithDrip.filter((m: any) => m.course_group === 'secretos-sexuales');
 
   // Fetch site settings
   const settingsRows = await sql`SELECT key, value FROM site_settings`;

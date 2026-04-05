@@ -16,7 +16,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const session = await getSession();
   if (!session?.isAdmin) return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
 
-  const { title, description, videoEmbed, isPublished, isFree, duration } = await request.json();
+  const { title, description, videoEmbed, isPublished, isFree, duration, dripEnabled, dripDays } = await request.json();
 
   await sql`
     UPDATE lessons SET
@@ -25,7 +25,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       video_embed = ${videoEmbed !== undefined ? videoEmbed : sql`video_embed`},
       is_published = COALESCE(${isPublished}, is_published),
       is_free = COALESCE(${isFree}, is_free),
-      duration = COALESCE(${duration}, duration)
+      duration = COALESCE(${duration}, duration),
+      drip_enabled = COALESCE(${dripEnabled ?? null}, drip_enabled),
+      drip_days = COALESCE(${dripDays ?? null}, drip_days)
     WHERE id = ${params.id}
   `;
 

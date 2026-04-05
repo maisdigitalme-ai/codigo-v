@@ -6,8 +6,8 @@ import Link from 'next/link';
 
 interface User { id: number; name: string; email: string; is_admin: boolean; is_active: boolean; created_at: string; }
 interface Course { id: number; title: string; description: string; thumbnail_url: string; position: number; is_published: boolean; slug: string; content_type: string; module_count: number; }
-interface Module { id: number; title: string; description: string; thumbnail_url: string; position: number; is_published: boolean; lesson_count: number; course_id: number | null; course_group: string; }
-interface Lesson { id: number; module_id: number; title: string; description: string; video_embed: string; position: number; is_published: boolean; is_free: boolean; duration: string; module_title: string; }
+interface Module { id: number; title: string; description: string; thumbnail_url: string; position: number; is_published: boolean; lesson_count: number; course_id: number | null; course_group: string; drip_enabled: boolean; drip_days: number; }
+interface Lesson { id: number; module_id: number; title: string; description: string; video_embed: string; position: number; is_published: boolean; is_free: boolean; duration: string; module_title: string; drip_enabled: boolean; drip_days: number; }
 
 export default function AdminClient({ userName, userEmail }: { userName: string; userEmail: string }) {
   const router = useRouter();
@@ -132,7 +132,7 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
     if (!editModule) return;
     await fetch(`/api/admin/modules/${editModule.id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: editModule.title, description: editModule.description, thumbnailUrl: editModule.thumbnail_url, isPublished: editModule.is_published, courseId: editModule.course_id }),
+      body: JSON.stringify({ title: editModule.title, description: editModule.description, thumbnailUrl: editModule.thumbnail_url, isPublished: editModule.is_published, courseId: editModule.course_id, dripEnabled: editModule.drip_enabled, dripDays: editModule.drip_days }),
     });
     setEditModule(null);
     loadAll();
@@ -154,7 +154,7 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
   async function updateLesson(e: React.FormEvent) {
     e.preventDefault();
     if (!editLesson) return;
-    await fetch(`/api/admin/lessons/${editLesson.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: editLesson.title, description: editLesson.description, videoEmbed: editLesson.video_embed, isPublished: editLesson.is_published, isFree: editLesson.is_free, duration: editLesson.duration }) });
+    await fetch(`/api/admin/lessons/${editLesson.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: editLesson.title, description: editLesson.description, videoEmbed: editLesson.video_embed, isPublished: editLesson.is_published, isFree: editLesson.is_free, duration: editLesson.duration, dripEnabled: editLesson.drip_enabled, dripDays: editLesson.drip_days }) });
     setEditLesson(null);
     loadAll();
   }
@@ -664,6 +664,33 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
               <input type="checkbox" checked={editModule.is_published} onChange={e => setEditModule(p => p ? { ...p, is_published: e.target.checked } : null)} />
               <span className="text-sm" style={{ color: '#CCC' }}>Publicado</span>
             </label>
+            {/* ═══ DRIP CONTENT ═══ */}
+            <div style={{ borderTop: '1px solid #2A2A2A', paddingTop: '16px', marginTop: '8px' }}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <svg width="16" height="16" fill="none" stroke="#F59E0B" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span className="text-sm font-medium" style={{ color: '#F59E0B' }}>Liberación Programada</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" className="sr-only peer" checked={editModule.drip_enabled || false} onChange={e => setEditModule(p => p ? { ...p, drip_enabled: e.target.checked } : null)} />
+                  <div className="w-9 h-5 rounded-full peer transition-colors" style={{ background: editModule.drip_enabled ? '#F59E0B' : '#333' }}>
+                    <div className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform" style={{ background: 'white', transform: editModule.drip_enabled ? 'translateX(16px)' : 'translateX(0)' }} />
+                  </div>
+                </label>
+              </div>
+              {editModule.drip_enabled && (
+                <div className="flex items-center gap-3" style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '10px', padding: '12px' }}>
+                  <span className="text-sm" style={{ color: '#CCC' }}>Liberar después de</span>
+                  <input type="number" min="0" className="input-dark" style={{ width: '70px', textAlign: 'center' }} value={editModule.drip_days || 0} onChange={e => setEditModule(p => p ? { ...p, drip_days: parseInt(e.target.value) || 0 } : null)} />
+                  <span className="text-sm" style={{ color: '#CCC' }}>días</span>
+                </div>
+              )}
+              <p className="text-xs mt-2" style={{ color: '#555' }}>
+                {editModule.drip_enabled
+                  ? `Este módulo se desbloqueará ${editModule.drip_days || 0} días después de la inscripción del alumno.`
+                  : 'Desactivado — el módulo está disponible inmediatamente.'}
+              </p>
+            </div>
             <ModalButtons onCancel={() => setEditModule(null)} submitLabel="Guardar" />
           </form>
         </Modal>
@@ -711,6 +738,33 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
                 <input type="checkbox" checked={editLesson.is_free} onChange={e => setEditLesson(p => p ? { ...p, is_free: e.target.checked } : null)} />
                 <span className="text-sm" style={{ color: '#CCC' }}>Gratuita</span>
               </label>
+            </div>
+            {/* ═══ DRIP CONTENT ═══ */}
+            <div style={{ borderTop: '1px solid #2A2A2A', paddingTop: '16px', marginTop: '8px' }}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <svg width="16" height="16" fill="none" stroke="#F59E0B" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span className="text-sm font-medium" style={{ color: '#F59E0B' }}>Liberación Programada</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" className="sr-only peer" checked={editLesson.drip_enabled || false} onChange={e => setEditLesson(p => p ? { ...p, drip_enabled: e.target.checked } : null)} />
+                  <div className="w-9 h-5 rounded-full peer transition-colors" style={{ background: editLesson.drip_enabled ? '#F59E0B' : '#333' }}>
+                    <div className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform" style={{ background: 'white', transform: editLesson.drip_enabled ? 'translateX(16px)' : 'translateX(0)' }} />
+                  </div>
+                </label>
+              </div>
+              {editLesson.drip_enabled && (
+                <div className="flex items-center gap-3" style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '10px', padding: '12px' }}>
+                  <span className="text-sm" style={{ color: '#CCC' }}>Liberar después de</span>
+                  <input type="number" min="0" className="input-dark" style={{ width: '70px', textAlign: 'center' }} value={editLesson.drip_days || 0} onChange={e => setEditLesson(p => p ? { ...p, drip_days: parseInt(e.target.value) || 0 } : null)} />
+                  <span className="text-sm" style={{ color: '#CCC' }}>días</span>
+                </div>
+              )}
+              <p className="text-xs mt-2" style={{ color: '#555' }}>
+                {editLesson.drip_enabled
+                  ? `Esta clase se desbloqueará ${editLesson.drip_days || 0} días después de la inscripción del alumno.`
+                  : 'Desactivado — la clase está disponible inmediatamente.'}
+              </p>
             </div>
             <ModalButtons onCancel={() => setEditLesson(null)} submitLabel="Guardar" />
           </form>
