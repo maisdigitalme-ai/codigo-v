@@ -244,25 +244,13 @@ export default function DashboardClient({
                 </div>
               </div>
 
-              {course.is_locked ? (
-                <div className="max-w-7xl mx-auto px-4 py-6 pb-8">
-                  <div className="flex flex-col items-center justify-center py-10 rounded-xl" style={{ background: 'rgba(245,158,11,0.05)', border: '1px dashed rgba(245,158,11,0.2)' }}>
-                    <svg width="40" height="40" fill="none" stroke="#F59E0B" strokeWidth="1.5" viewBox="0 0 24 24" style={{ opacity: 0.6 }}>
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                      <path d="M7 11V7a5 5 0 0110 0v4"/>
-                    </svg>
-                    <p className="mt-3 text-sm font-medium" style={{ color: '#F59E0B' }}>Este curso se desbloqueará en {course.days_remaining} día{(course.days_remaining || 0) !== 1 ? 's' : ''}</p>
-                    <p className="mt-1 text-xs" style={{ color: '#666' }}>El contenido se libera automáticamente después del período configurado</p>
-                  </div>
-                </div>
-              ) : (
               <div className="max-w-7xl mx-auto px-4 py-4 pb-8">
                 {course.modules.length > 0 ? (
                   <>
                     {/* Desktop: Grid layout */}
                     <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                       {course.modules.map((module) => (
-                        <ModuleCard key={module.id} module={module} />
+                        <ModuleCard key={module.id} module={course.is_locked ? { ...module, is_locked: true, days_remaining: course.days_remaining } : module} />
                       ))}
                     </div>
 
@@ -271,7 +259,7 @@ export default function DashboardClient({
                       <div className="flex gap-3" style={{ width: 'max-content' }}>
                         {course.modules.map((module) => (
                           <div key={module.id} style={{ width: '160px', scrollSnapAlign: 'start', flexShrink: 0 }}>
-                            <ModuleCard module={module} />
+                            <ModuleCard key={module.id} module={course.is_locked ? { ...module, is_locked: true, days_remaining: course.days_remaining } : module} />
                           </div>
                         ))}
                       </div>
@@ -281,7 +269,6 @@ export default function DashboardClient({
                   <p className="text-sm py-4" style={{ color: '#555' }}>Este curso aún no tiene módulos.</p>
                 )}
               </div>
-              )}
             </div>
           ))}
         </>
@@ -355,10 +342,9 @@ function ModuleCard({ module }: { module: Module }) {
       className="rounded-xl overflow-hidden transition-all duration-300 group"
       style={{
         background: '#111',
-        border: isLocked ? '1px solid rgba(245,158,11,0.2)' : '1px solid rgba(255,255,255,0.06)',
-        cursor: isLocked ? 'default' : 'pointer',
+        border: '1px solid rgba(255,255,255,0.06)',
+        cursor: isLocked ? 'not-allowed' : 'pointer',
         position: 'relative',
-        opacity: isLocked ? 0.7 : 1,
       }}
       onMouseEnter={e => {
         if (!isLocked) {
@@ -389,17 +375,21 @@ function ModuleCard({ module }: { module: Module }) {
             src={module.thumbnail_url}
             alt={module.title}
             fill
-            style={{ objectFit: 'cover', filter: isLocked ? 'blur(2px) brightness(0.5)' : 'none' }}
+            style={{
+              objectFit: 'cover',
+              filter: isLocked ? 'grayscale(0.85) brightness(0.55)' : 'none',
+              transition: 'filter 0.4s ease',
+            }}
             sizes="(max-width: 768px) 160px, 250px"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <div
               className="w-16 h-16 rounded-full flex items-center justify-center"
-              style={{ background: isLocked ? 'rgba(245,158,11,0.1)' : 'rgba(230,57,70,0.1)', border: isLocked ? '2px solid rgba(245,158,11,0.3)' : '2px solid rgba(230,57,70,0.3)' }}
+              style={{ background: isLocked ? 'rgba(255,255,255,0.05)' : 'rgba(230,57,70,0.1)', border: isLocked ? '2px solid rgba(255,255,255,0.15)' : '2px solid rgba(230,57,70,0.3)' }}
             >
               {isLocked ? (
-                <svg width="28" height="28" fill="none" stroke="#F59E0B" strokeWidth="1.5" viewBox="0 0 24 24">
+                <svg width="28" height="28" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" viewBox="0 0 24 24">
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                   <path d="M7 11V7a5 5 0 0110 0v4"/>
                 </svg>
@@ -412,15 +402,38 @@ function ModuleCard({ module }: { module: Module }) {
           </div>
         )}
 
-        {/* Drip lock overlay */}
+        {/* Drip lock overlay — sutil, elegante */}
         {isLocked && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(1px)' }}>
-            <svg width="32" height="32" fill="none" stroke="#F59E0B" strokeWidth="1.5" viewBox="0 0 24 24">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0110 0v4"/>
-            </svg>
-            <p className="text-xs font-semibold mt-2 text-center px-2" style={{ color: '#F59E0B' }}>
-              Disponible en {daysRemaining} día{daysRemaining !== 1 ? 's' : ''}
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-end"
+            style={{
+              background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.08) 100%)',
+              padding: '16px 8px',
+            }}
+          >
+            {/* Cadeado central */}
+            <div
+              className="absolute flex items-center justify-center"
+              style={{
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                background: 'rgba(0,0,0,0.45)',
+                backdropFilter: 'blur(4px)',
+                border: '1px solid rgba(255,255,255,0.15)',
+              }}
+            >
+              <svg width="20" height="20" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" viewBox="0 0 24 24">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+            </div>
+            {/* Mensagem na parte inferior */}
+            <p className="text-xs font-medium text-center" style={{ color: 'rgba(255,255,255,0.75)', letterSpacing: '0.02em' }}>
+              Disponible en {daysRemaining} d{daysRemaining !== 1 ? '\u00edas' : '\u00eda'}
             </p>
           </div>
         )}
