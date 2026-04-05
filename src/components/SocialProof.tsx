@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import AvatarIcon from './AvatarIcon';
 
 // ═══════════════════════════════════════════════════
 // CONTADOR CONSISTENTE — mesmo número em todas as páginas
@@ -28,6 +27,7 @@ const testimonials = [
   {
     name: 'Carlos M.',
     location: 'Madrid, España',
+    avatar: '👨🏻',
     text: 'Llevaba años pensando que sabía todo, hasta que empecé este programa. Mi pareja notó la diferencia desde la primera semana. No exagero.',
     rating: 5,
     time: 'hace 3 días',
@@ -35,6 +35,7 @@ const testimonials = [
   {
     name: 'Diego R.',
     location: 'Buenos Aires, Argentina',
+    avatar: '👨🏽‍🦱',
     text: 'Lo mejor es que es directo, sin rodeos. Apliqué lo del módulo 3 y los resultados fueron inmediatos. Mi confianza cambió por completo.',
     rating: 5,
     time: 'hace 1 semana',
@@ -42,6 +43,7 @@ const testimonials = [
   {
     name: 'Andrés L.',
     location: 'Bogotá, Colombia',
+    avatar: '🧔🏽',
     text: 'Al principio dudé, pero después del primer módulo entendí que esto vale mucho más de lo que pagué. Información que nadie te enseña.',
     rating: 5,
     time: 'hace 5 días',
@@ -49,6 +51,7 @@ const testimonials = [
   {
     name: 'Mateo S.',
     location: 'Santiago, Chile',
+    avatar: '👨🏻‍🦳',
     text: 'Mi relación mejoró completamente. Ella misma me preguntó qué había cambiado. Este programa debería ser obligatorio.',
     rating: 5,
     time: 'hace 2 semanas',
@@ -56,6 +59,7 @@ const testimonials = [
   {
     name: 'Javier P.',
     location: 'Lima, Perú',
+    avatar: '👨🏾',
     text: 'Contenido de otro nivel. Ojalá hubiera encontrado esto antes. Cada módulo supera al anterior.',
     rating: 5,
     time: 'hace 4 días',
@@ -63,6 +67,7 @@ const testimonials = [
   {
     name: 'Roberto F.',
     location: 'CDMX, México',
+    avatar: '🧑🏽',
     text: 'Pensé que era solo teoría, pero todo es aplicable desde el día uno. Los resultados hablan por sí solos. 100% recomendado.',
     rating: 5,
     time: 'hace 1 semana',
@@ -70,6 +75,7 @@ const testimonials = [
   {
     name: 'Fernando G.',
     location: 'Medellín, Colombia',
+    avatar: '👨🏿‍🦱',
     text: 'Después de 12 años de relación, logré sorprender a mi esposa como si fuera la primera vez. Eso no tiene precio.',
     rating: 5,
     time: 'hace 6 días',
@@ -77,6 +83,7 @@ const testimonials = [
   {
     name: 'Lucas T.',
     location: 'Montevideo, Uruguay',
+    avatar: '👨🏼',
     text: 'Lo que más valoro es la calidad del contenido. No es el típico curso genérico. Se nota que hay investigación real detrás.',
     rating: 5,
     time: 'hace 2 semanas',
@@ -84,6 +91,7 @@ const testimonials = [
   {
     name: 'Sebastián V.',
     location: 'Quito, Ecuador',
+    avatar: '🧔🏻',
     text: 'Empecé por curiosidad y terminé aplicando todo. Mi vida íntima dio un giro de 180 grados. Gracias por este programa.',
     rating: 5,
     time: 'hace 3 días',
@@ -91,6 +99,7 @@ const testimonials = [
   {
     name: 'Nicolás H.',
     location: 'San José, Costa Rica',
+    avatar: '👨🏾‍🦳',
     text: 'El módulo sobre comunicación fue un antes y un después. Aprendí cosas que jamás me habían explicado. Increíble.',
     rating: 5,
     time: 'hace 1 semana',
@@ -98,6 +107,7 @@ const testimonials = [
   {
     name: 'Alejandro D.',
     location: 'Caracas, Venezuela',
+    avatar: '🧑🏻‍⚕️',
     text: 'Soy médico y aun así aprendí cosas nuevas. El enfoque práctico es lo que hace la diferencia con cualquier otro material.',
     rating: 5,
     time: 'hace 5 días',
@@ -105,6 +115,7 @@ const testimonials = [
   {
     name: 'Gabriel C.',
     location: 'Barcelona, España',
+    avatar: '👨🏼‍🦱',
     text: 'Mi novia me dijo que soy otro hombre. Literal. Este programa te transforma la mentalidad y la técnica al mismo tiempo.',
     rating: 5,
     time: 'hace 4 días',
@@ -207,7 +218,7 @@ export function SocialProofCompact() {
                 &ldquo;{t.text.substring(0, 80)}...&rdquo;
               </p>
               <div className="mt-2 flex items-center gap-2">
-                <AvatarIcon size={24} bgColor="rgba(230,57,70,0.15)" iconColor="#E63946" />
+                <span style={{ fontSize: '18px', lineHeight: 1 }}>{t.avatar}</span>
                 <span className="text-xs font-medium" style={{ color: '#999' }}>{t.name}</span>
               </div>
             </div>
@@ -369,15 +380,17 @@ export function SocialProofFull() {
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <AvatarIcon
-                      size={36}
-                      bgColor="rgba(230,57,70,0.15)"
-                      iconColor="#E63946"
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center"
                       style={{
-                        background: 'linear-gradient(135deg, rgba(230,57,70,0.2) 0%, rgba(230,57,70,0.1) 100%)',
-                        border: '1px solid rgba(230,57,70,0.2)',
+                        background: 'linear-gradient(135deg, rgba(230,57,70,0.12) 0%, rgba(230,57,70,0.05) 100%)',
+                        border: '1px solid rgba(230,57,70,0.15)',
+                        fontSize: '22px',
+                        lineHeight: 1,
                       }}
-                    />
+                    >
+                      {t.avatar}
+                    </div>
                     <div>
                       <p className="text-sm font-medium" style={{ color: 'white' }}>{t.name}</p>
                       <p className="text-xs" style={{ color: '#666' }}>{t.location}</p>
