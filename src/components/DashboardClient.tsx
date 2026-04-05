@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { SocialProofFull } from './SocialProof';
 
 interface Module {
   id: number;
@@ -318,6 +319,9 @@ export default function DashboardClient({
           )}
         </>
       )}
+
+      {/* Prova social */}
+      <SocialProofFull />
     </div>
   );
 }

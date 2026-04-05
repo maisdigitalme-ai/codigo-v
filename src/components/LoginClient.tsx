@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { SocialProofCompact } from './SocialProof';
 
 export default function LoginClient() {
   const router = useRouter();
@@ -185,7 +186,12 @@ export default function LoginClient() {
             </button>
           </form>
 
-          <p className="text-center text-xs mt-6" style={{ color: '#555' }}>
+          {/* Prova social */}
+          <div className="mt-6">
+            <SocialProofCompact />
+          </div>
+
+          <p className="text-center text-xs mt-4" style={{ color: '#555' }}>
             Copyright © 2025 – Código V. Todos los derechos reservados.
           </p>
         </div>
