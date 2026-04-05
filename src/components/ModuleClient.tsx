@@ -178,7 +178,7 @@ export default function ModuleClient({
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col lg:flex-row">
           {/* Video + Info Section */}
-          <div className="flex-1">
+          <div className="flex-1 flex flex-col">
             {/* Video Player */}
             <div style={{ background: '#000' }}>
               {activeLesson?.video_embed ? (
@@ -247,6 +247,23 @@ export default function ModuleClient({
                     </button>
                   )}
                 </div>
+              </div>
+            </div>
+
+            {/* Mobile: Lessons list (shown before comments on mobile) */}
+            <div className="lg:hidden px-4 pb-4 order-first-mobile" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="flex items-center justify-between pt-4 mb-3">
+                <h3 style={{ color: 'white', fontSize: '15px', fontWeight: 600, fontFamily: 'var(--font-inter)' }}>
+                  Clases del módulo
+                </h3>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(34,197,94,0.15)', color: '#22C55E', fontSize: '11px' }}>
+                  {completedCount}/{lessonList.length}
+                </span>
+              </div>
+              <div className="space-y-1">
+                {lessonList.map((lesson, idx) => (
+                  <LessonItem key={lesson.id} lesson={lesson} index={idx + 1} isActive={activeLesson?.id === lesson.id} onClick={() => { setActiveLesson(lesson); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
+                ))}
               </div>
             </div>
 
@@ -319,24 +336,7 @@ export default function ModuleClient({
           </aside>
         </div>
 
-        {/* Mobile: Lessons list below everything */}
-        <div className="lg:hidden px-4 pb-8">
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-            <div className="flex items-center justify-between pt-4 mb-3">
-              <h3 style={{ color: 'white', fontSize: '15px', fontWeight: 600, fontFamily: 'var(--font-inter)' }}>
-                Clases del módulo
-              </h3>
-              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(34,197,94,0.15)', color: '#22C55E', fontSize: '11px' }}>
-                {completedCount}/{lessonList.length}
-              </span>
-            </div>
-            <div className="space-y-1">
-              {lessonList.map((lesson, idx) => (
-                <LessonItem key={lesson.id} lesson={lesson} index={idx + 1} isActive={activeLesson?.id === lesson.id} onClick={() => { setActiveLesson(lesson); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
-              ))}
-            </div>
-          </div>
-        </div>
+
       </div>
     </div>
   );
