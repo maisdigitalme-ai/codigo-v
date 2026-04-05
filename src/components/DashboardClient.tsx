@@ -232,15 +232,7 @@ export default function DashboardClient({
                   <h2 style={{ color: 'white', fontSize: '16px', fontWeight: 600, fontFamily: 'var(--font-inter)' }}>
                     {course.title}
                   </h2>
-                  {course.is_locked && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium" style={{ background: 'rgba(245,158,11,0.15)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.25)' }}>
-                      <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                        <path d="M7 11V7a5 5 0 0110 0v4"/>
-                      </svg>
-                      Disponible en {course.days_remaining} día{(course.days_remaining || 0) !== 1 ? 's' : ''}
-                    </span>
-                  )}
+
                 </div>
               </div>
 
@@ -431,10 +423,14 @@ function ModuleCard({ module }: { module: Module }) {
                 <path d="M7 11V7a5 5 0 0110 0v4"/>
               </svg>
             </div>
-            {/* Mensagem na parte inferior */}
-            <p className="text-xs font-medium text-center" style={{ color: 'rgba(255,255,255,0.75)', letterSpacing: '0.02em' }}>
+            {/* Badge na parte inferior */}
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium" style={{ background: 'rgba(245,158,11,0.15)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.25)' }}>
+              <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
               Disponible en {daysRemaining} d{daysRemaining !== 1 ? '\u00edas' : '\u00eda'}
-            </p>
+            </span>
           </div>
         )}
 
