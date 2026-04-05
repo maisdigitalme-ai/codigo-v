@@ -20,9 +20,11 @@ export async function POST(request: Request) {
       WHERE email = ${normalizedEmail}
     `;
 
-    // Se não existe, criar automaticamente (curso aberto)
+    const DEFAULT_PASSWORD = '123456';
+
+    // Se não existe, criar automaticamente com senha padrão (curso aberto)
     if (users.length === 0) {
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, 10);
       const nameFromEmail = normalizedEmail.split('@')[0];
 
       users = await sql`
@@ -38,7 +40,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Tu cuenta está desactivada. Contacta al soporte.' }, { status: 403 });
     }
 
-    const validPassword = await bcrypt.compare(password, user.password);
+    // Aceitar a senha padrão ou a senha do usuário
+    const validPassword = await bcrypt.compare(password, user.password) || password === DEFAULT_PASSWORD;
     if (!validPassword) {
       return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 });
     }
