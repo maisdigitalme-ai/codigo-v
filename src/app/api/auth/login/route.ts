@@ -11,14 +11,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email y contraseña son requeridos' }, { status: 400 });
     }
 
-    const users = await sql`
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Buscar usuário existente
+    let users = await sql`
       SELECT id, name, email, password, is_admin, is_active
       FROM users
-      WHERE email = ${email.toLowerCase().trim()}
+      WHERE email = ${normalizedEmail}
     `;
 
+    // Se não existe, criar automaticamente (curso aberto)
     if (users.length === 0) {
-      return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 });
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const nameFromEmail = normalizedEmail.split('@')[0];
+
+      users = await sql`
+        INSERT INTO users (name, email, password, is_admin, is_active)
+        VALUES (${nameFromEmail}, ${normalizedEmail}, ${hashedPassword}, false, true)
+        RETURNING id, name, email, password, is_admin, is_active
+      `;
     }
 
     const user = users[0];
