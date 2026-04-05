@@ -36,6 +36,7 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
   const [editLesson, setEditLesson] = useState<Lesson | null>(null);
 
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '123456', isAdmin: false });
+  const [editUser, setEditUser] = useState<(User & { password?: string }) | null>(null);
   const [newCourse, setNewCourse] = useState({ title: '', description: '', thumbnailUrl: '', contentType: 'video' });
   const [newModule, setNewModule] = useState({ title: '', description: '', thumbnailUrl: '', courseId: '' });
   const [newLesson, setNewLesson] = useState({ moduleId: '', title: '', description: '', videoEmbed: '', duration: '' });
@@ -85,6 +86,16 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
 
   async function toggleUser(id: number, isActive: boolean) {
     await fetch(`/api/admin/users/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isActive: !isActive }) });
+    loadAll();
+  }
+
+  async function updateUser(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editUser) return;
+    const body: any = { name: editUser.name, email: editUser.email, isAdmin: editUser.is_admin, isActive: editUser.is_active };
+    if (editUser.password && editUser.password.trim() !== '') body.password = editUser.password;
+    await fetch(`/api/admin/users/${editUser.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    setEditUser(null);
     loadAll();
   }
 
@@ -314,6 +325,9 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
                           <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: u.is_active ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)', color: u.is_active ? '#22C55E' : '#666' }}>
                             {u.is_active ? 'Activo' : 'Inactivo'}
                           </span>
+                          <button onClick={() => setEditUser({ ...u, password: '' })} className="text-xs px-2 py-1 rounded" style={{ background: 'transparent', border: '1px solid rgba(230,57,70,0.3)', color: '#E63946', cursor: 'pointer' }}>
+                            Editar
+                          </button>
                           <button onClick={() => toggleUser(u.id, u.is_active)} className="text-xs px-2 py-1 rounded" style={{ background: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer' }}>
                             {u.is_active ? 'Desactivar' : 'Activar'}
                           </button>
@@ -562,6 +576,25 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
               <label htmlFor="isAdmin" style={{ fontSize: '13px', color: '#CCC', cursor: 'pointer' }}>Es administrador</label>
             </div>
             <ModalButtons onCancel={() => setShowAddUser(false)} submitLabel="Agregar" />
+          </form>
+        </Modal>
+      )}
+
+      {/* Modal: Edit User */}
+      {editUser && (
+        <Modal title="Editar Usuario" onClose={() => setEditUser(null)}>
+          <form onSubmit={updateUser} className="space-y-4">
+            <Field label="Nombre"><input className="input-dark" value={editUser.name} onChange={e => setEditUser(p => p ? { ...p, name: e.target.value } : p)} required placeholder="Nombre completo" /></Field>
+            <Field label="Email"><input className="input-dark" type="email" value={editUser.email} onChange={e => setEditUser(p => p ? { ...p, email: e.target.value } : p)} required placeholder="email@ejemplo.com" /></Field>
+            <Field label="Nueva Contraseña">
+              <input className="input-dark" type="password" value={editUser.password || ''} onChange={e => setEditUser(p => p ? { ...p, password: e.target.value } : p)} placeholder="Dejar vacío para no cambiar" />
+              <p className="text-xs mt-1" style={{ color: '#666' }}>Solo rellena si deseas cambiar la contraseña actual.</p>
+            </Field>
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="editIsAdmin" checked={editUser.is_admin} onChange={e => setEditUser(p => p ? { ...p, is_admin: e.target.checked } : p)} />
+              <label htmlFor="editIsAdmin" style={{ fontSize: '13px', color: '#CCC', cursor: 'pointer' }}>Es administrador</label>
+            </div>
+            <ModalButtons onCancel={() => setEditUser(null)} submitLabel="Guardar" />
           </form>
         </Modal>
       )}
