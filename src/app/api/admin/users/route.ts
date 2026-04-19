@@ -8,10 +8,12 @@ export async function GET() {
   if (!session?.isAdmin) return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
 
   const users = await sql`
-    SELECT id, name, email, is_admin, is_active, created_at,
+    SELECT id, name, email, is_admin, is_active, status, created_at,
       (SELECT COUNT(*) FROM progress p WHERE p.user_id = users.id AND p.completed = true) as completed_lessons
     FROM users
-    ORDER BY created_at DESC
+    ORDER BY
+      CASE WHEN status = 'pending' THEN 0 ELSE 1 END,
+      created_at DESC
   `;
 
   return NextResponse.json(users);
@@ -27,9 +29,9 @@ export async function POST(request: Request) {
 
   try {
     const user = await sql`
-      INSERT INTO users (name, email, password, is_admin)
-      VALUES (${name}, ${email.toLowerCase().trim()}, ${hashedPassword}, ${isAdmin || false})
-      RETURNING id, name, email, is_admin, is_active, created_at
+      INSERT INTO users (name, email, password, is_admin, is_active, status)
+      VALUES (${name}, ${email.toLowerCase().trim()}, ${hashedPassword}, ${isAdmin || false}, true, 'approved')
+      RETURNING id, name, email, is_admin, is_active, status, created_at
     `;
     return NextResponse.json(user[0]);
   } catch {

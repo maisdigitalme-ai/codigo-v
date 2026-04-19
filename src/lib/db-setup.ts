@@ -282,5 +282,24 @@ export async function setupDatabase() {
     END $$;
   `;
 
+  // ═══ APPROVAL SYSTEM MIGRATION ═══
+  // Add status column to users (pending | approved)
+  await sql`
+    DO $$ BEGIN
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved';
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+  `;
+
+  // Ensure existing active users keep 'approved' status
+  await sql`
+    UPDATE users SET status = 'approved' WHERE is_active = true AND (status IS NULL OR status = '')
+  `;
+
+  // Ensure admin user always has approved status
+  await sql`
+    UPDATE users SET status = 'approved', is_active = true WHERE is_admin = true
+  `;
+
   console.log('✅ Banco de dados configurado com sucesso!');
 }

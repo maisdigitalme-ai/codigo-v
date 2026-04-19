@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AvatarIcon from './AvatarIcon';
 
-interface User { id: number; name: string; email: string; is_admin: boolean; is_active: boolean; created_at: string; }
+interface User { id: number; name: string; email: string; is_admin: boolean; is_active: boolean; status: string; created_at: string; }
 interface Course { id: number; title: string; description: string; thumbnail_url: string; position: number; is_published: boolean; slug: string; content_type: string; module_count: number; drip_enabled: boolean; drip_days: number; }
 interface Module { id: number; title: string; description: string; thumbnail_url: string; position: number; is_published: boolean; lesson_count: number; course_id: number | null; course_group: string; drip_enabled: boolean; drip_days: number; }
 interface Lesson { id: number; module_id: number; title: string; description: string; video_embed: string; position: number; is_published: boolean; is_free: boolean; duration: string; module_title: string; drip_enabled: boolean; drip_days: number; }
@@ -101,6 +101,17 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
 
   async function deleteUser(id: number) {
     if (!confirm('¿Eliminar este usuario?')) return;
+    await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+    loadAll();
+  }
+
+  async function approveUser(id: number) {
+    await fetch(`/api/admin/users/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isActive: true, status: 'approved' }) });
+    loadAll();
+  }
+
+  async function rejectUser(id: number) {
+    if (!confirm('¿Rechazar y eliminar esta solicitud de acceso?')) return;
     await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
     loadAll();
   }
@@ -304,36 +315,61 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
             {tab === 'users' && (
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 style={{ color: 'white', fontWeight: 600, fontSize: '16px' }}>Usuarios ({users.length})</h2>
+                  <div>
+                    <h2 style={{ color: 'white', fontWeight: 600, fontSize: '16px' }}>Usuarios ({users.length})</h2>
+                    {users.filter(u => u.status === 'pending').length > 0 && (
+                      <p className="text-xs mt-0.5" style={{ color: '#F59E0B' }}>
+                        ⚠️ {users.filter(u => u.status === 'pending').length} solicitud(es) pendiente(s) de aprobación
+                      </p>
+                    )}
+                  </div>
                   <button className="btn-red text-sm px-4 py-2" onClick={() => setShowAddUser(true)}>+ Agregar</button>
                 </div>
                 <div className="space-y-2">
                   {users.map(u => (
-                    <div key={u.id} style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: '10px', padding: '14px 16px' }}>
+                    <div key={u.id} style={{
+                      background: u.status === 'pending' ? 'rgba(245,158,11,0.05)' : '#1A1A1A',
+                      border: u.status === 'pending' ? '1px solid rgba(245,158,11,0.3)' : '1px solid #2A2A2A',
+                      borderRadius: '10px', padding: '14px 16px'
+                    }}>
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
-<AvatarIcon size={32} bgColor={u.is_admin ? '#E63946' : '#333'} iconColor="white" />
+                          <AvatarIcon size={32} bgColor={u.is_admin ? '#E63946' : u.status === 'pending' ? '#7A5C00' : '#333'} iconColor="white" />
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-medium truncate" style={{ color: 'white' }}>{u.name}</p>
                               {u.is_admin && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(230,57,70,0.15)', color: '#E63946', fontSize: '10px' }}>Admin</span>}
+                              {u.status === 'pending' && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.15)', color: '#F59E0B', fontSize: '10px' }}>⏳ Pendiente</span>}
                             </div>
                             <p className="text-xs truncate" style={{ color: '#666' }}>{u.email}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: u.is_active ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)', color: u.is_active ? '#22C55E' : '#666' }}>
-                            {u.is_active ? 'Activo' : 'Inactivo'}
-                          </span>
-                          <button onClick={() => setEditUser({ ...u, password: '' })} className="text-xs px-2 py-1 rounded" style={{ background: 'transparent', border: '1px solid rgba(230,57,70,0.3)', color: '#E63946', cursor: 'pointer' }}>
-                            Editar
-                          </button>
-                          <button onClick={() => toggleUser(u.id, u.is_active)} className="text-xs px-2 py-1 rounded" style={{ background: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer' }}>
-                            {u.is_active ? 'Desactivar' : 'Activar'}
-                          </button>
-                          <button onClick={() => deleteUser(u.id)} className="text-xs px-2 py-1 rounded" style={{ background: 'transparent', border: '1px solid rgba(230,57,70,0.3)', color: '#E63946', cursor: 'pointer' }}>
-                            ✕
-                          </button>
+                          {u.status === 'pending' ? (
+                            <>
+                              <button onClick={() => approveUser(u.id)} className="text-xs px-3 py-1 rounded font-medium" style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.4)', color: '#22C55E', cursor: 'pointer' }}>
+                                ✓ Aprobar
+                              </button>
+                              <button onClick={() => rejectUser(u.id)} className="text-xs px-2 py-1 rounded" style={{ background: 'transparent', border: '1px solid rgba(230,57,70,0.3)', color: '#E63946', cursor: 'pointer' }}>
+                                ✕ Rechazar
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: u.is_active ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)', color: u.is_active ? '#22C55E' : '#666' }}>
+                                {u.is_active ? 'Activo' : 'Inactivo'}
+                              </span>
+                              <button onClick={() => setEditUser({ ...u, password: '' })} className="text-xs px-2 py-1 rounded" style={{ background: 'transparent', border: '1px solid rgba(230,57,70,0.3)', color: '#E63946', cursor: 'pointer' }}>
+                                Editar
+                              </button>
+                              <button onClick={() => toggleUser(u.id, u.is_active)} className="text-xs px-2 py-1 rounded" style={{ background: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer' }}>
+                                {u.is_active ? 'Desactivar' : 'Activar'}
+                              </button>
+                              <button onClick={() => deleteUser(u.id)} className="text-xs px-2 py-1 rounded" style={{ background: 'transparent', border: '1px solid rgba(230,57,70,0.3)', color: '#E63946', cursor: 'pointer' }}>
+                                ✕
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>

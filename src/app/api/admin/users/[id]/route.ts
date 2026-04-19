@@ -8,7 +8,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (!session?.isAdmin) return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
 
   const body = await request.json();
-  const { name, email, password, isActive, isAdmin } = body;
+  const { name, email, password, isActive, isAdmin, status } = body;
 
   if (password) {
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -18,7 +18,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         email = COALESCE(${email?.toLowerCase().trim()}, email),
         password = ${hashedPassword},
         is_active = COALESCE(${isActive}, is_active),
-        is_admin = COALESCE(${isAdmin}, is_admin)
+        is_admin = COALESCE(${isAdmin}, is_admin),
+        status = COALESCE(${status}, status)
       WHERE id = ${params.id}
     `;
   } else {
@@ -27,7 +28,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         name = COALESCE(${name}, name),
         email = COALESCE(${email?.toLowerCase().trim()}, email),
         is_active = COALESCE(${isActive}, is_active),
-        is_admin = COALESCE(${isAdmin}, is_admin)
+        is_admin = COALESCE(${isAdmin}, is_admin),
+        status = COALESCE(${status}, status)
       WHERE id = ${params.id}
     `;
   }

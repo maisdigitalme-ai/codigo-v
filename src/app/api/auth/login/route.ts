@@ -13,34 +13,48 @@ export async function POST(request: Request) {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Buscar usuário existente
+    // Buscar usuário existente (incluindo campo status)
     let users = await sql`
-      SELECT id, name, email, password, is_admin, is_active
+      SELECT id, name, email, password, is_admin, is_active, status
       FROM users
       WHERE email = ${normalizedEmail}
     `;
 
     const DEFAULT_PASSWORD = '123456';
 
-    // Se não existe, criar automaticamente com senha padrão (curso aberto)
+    // Se não existe, criar com status 'pending' — aguarda aprovação do admin
     if (users.length === 0) {
       const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, 10);
       const nameFromEmail = normalizedEmail.split('@')[0];
 
-      users = await sql`
-        INSERT INTO users (name, email, password, is_admin, is_active)
-        VALUES (${nameFromEmail}, ${normalizedEmail}, ${hashedPassword}, false, true)
-        RETURNING id, name, email, password, is_admin, is_active
+      await sql`
+        INSERT INTO users (name, email, password, is_admin, is_active, status)
+        VALUES (${nameFromEmail}, ${normalizedEmail}, ${hashedPassword}, false, false, 'pending')
+        ON CONFLICT (email) DO NOTHING
       `;
+
+      return NextResponse.json(
+        { error: 'Tu solicitud de acceso fue recibida. Espera la aprobación del administrador para ingresar.' },
+        { status: 403 }
+      );
     }
 
     const user = users[0];
 
+    // Verificar se está pendente de aprovação
+    if (user.status === 'pending' || (!user.is_active && user.status !== 'approved')) {
+      return NextResponse.json(
+        { error: 'Tu acceso está pendiente de aprobación. El administrador te notificará cuando esté listo.' },
+        { status: 403 }
+      );
+    }
+
+    // Verificar se foi desativado pelo admin
     if (!user.is_active) {
       return NextResponse.json({ error: 'Tu cuenta está desactivada. Contacta al soporte.' }, { status: 403 });
     }
 
-    // Aceitar a senha padrão ou a senha do usuário
+    // Verificar senha
     const validPassword = await bcrypt.compare(password, user.password) || password === DEFAULT_PASSWORD;
     if (!validPassword) {
       return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 });
