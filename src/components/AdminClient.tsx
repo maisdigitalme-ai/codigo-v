@@ -106,7 +106,7 @@ export default function AdminClient({ userName, userEmail }: { userName: string;
   }
 
   async function approveUser(id: number) {
-    await fetch(`/api/admin/users/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isActive: true, status: 'approved' }) });
+    await fetch(`/api/admin/users/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'approve' }) });
     loadAll();
   }
 
