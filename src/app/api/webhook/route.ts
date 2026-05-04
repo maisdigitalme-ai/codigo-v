@@ -8,14 +8,44 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     
-    const customerEmail = body.customer?.email || body.email || body.data?.object?.customer_email;
-    const customerName = body.customer?.name || body.name || body.data?.object?.customer_name || 'Cliente';
-    const productName = body.product?.name || body.product_name || 'Produto Código V';
+    // Log para debug (ajuda a ver o que a plataforma está enviando no painel da Vercel)
+    console.log('Webhook received:', JSON.stringify(body));
+
+    // Mapeamento Coringa para E-mail (tenta todos os formatos comuns)
+    const customerEmail = 
+      body.customer?.email || 
+      body.email || 
+      body.data?.object?.customer_email || 
+      body.data?.email ||
+      body.payer?.email ||
+      body.usr_email ||
+      body.client?.email;
+
+    // Mapeamento Coringa para Nome
+    const customerName = 
+      body.customer?.name || 
+      body.name || 
+      body.data?.object?.customer_name || 
+      body.data?.name ||
+      body.payer?.name ||
+      body.usr_name || 
+      body.client?.name ||
+      'Cliente';
+
+    // Mapeamento Coringa para Produto
+    const productName = 
+      body.product?.name || 
+      body.product_name || 
+      body.data?.product_name ||
+      'Produto Código V';
 
     if (!customerEmail) {
+      console.error('Error: Missing customer email in webhook body');
       return NextResponse.json({ error: 'Missing customer email' }, { status: 400 });
     }
 
+    // 1. Criar ou atualizar o usuário no banco de dados (Neon/PostgreSQL)
+    // Definimos is_active como true para automação total e senha fixa 123456
     await sql`
       INSERT INTO users (name, email, password, is_active, is_admin)
       VALUES (${customerName}, ${customerEmail}, '123456', true, false)
@@ -25,6 +55,7 @@ export async function POST(request: Request) {
         is_active = true
     `;
 
+    // 2. Enviar e-mail de boas-vindas via Resend com o template visual Código V
     const { data, error } = await resend.emails.send({
       from: 'Suporte <suporte@alphametodo.com>',
       to: [customerEmail],
@@ -68,11 +99,13 @@ export async function POST(request: Request) {
     });
 
     if (error) {
+      console.error('Resend Error:', error);
       return NextResponse.json({ error }, { status: 400 });
     }
 
     return NextResponse.json({ message: 'User created and email sent', data });
   } catch (err) {
+    console.error('Webhook Error:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
