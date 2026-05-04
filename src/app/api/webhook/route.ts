@@ -4,6 +4,9 @@ import sql from '@/lib/db';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Forçar a rota a ser dinâmica para evitar cache da Vercel
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -38,7 +41,7 @@ export async function POST(request: Request) {
       body.data?.product_name ||
       'Produto Código V';
 
-    // Identificação do Status (Coringa para várias plataformas)
+    // Identificação do Status
     const status = (
       body.status || 
       body.event || 
@@ -48,6 +51,7 @@ export async function POST(request: Request) {
     ).toLowerCase();
 
     if (!customerEmail) {
+      console.error('Webhook Error: No email found in body');
       return NextResponse.json({ error: 'Missing customer email' }, { status: 400 });
     }
 
@@ -62,8 +66,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'User blocked successfully' });
     }
 
-    // LÓGICA DE LIBERAÇÃO (Apenas se for Pago/Confirmado)
-    // Se o status for vazio ou incluir algo positivo, liberamos
+    // LÓGICA DE LIBERAÇÃO
     if (status === '' || status.includes('paid') || status.includes('pago') || status.includes('confirm') || status.includes('approved')) {
       
       // 1. Criar ou atualizar o usuário no banco de dados
@@ -116,6 +119,7 @@ export async function POST(request: Request) {
       });
 
       if (error) {
+        console.error('Resend Error:', error);
         return NextResponse.json({ error }, { status: 400 });
       }
 
