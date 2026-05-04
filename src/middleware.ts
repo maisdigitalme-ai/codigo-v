@@ -7,14 +7,15 @@ const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback_secr
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Rotas públicas
-  const publicPaths = ['/login', '/api/auth/login', '/api/setup'];
+  // Rotas públicas (Adicionado /api/webhook)
+  const publicPaths = ['/login', '/api/auth/login', '/api/setup', '/api/webhook'];
   if (publicPaths.some(p => pathname.startsWith(p))) {
     return NextResponse.next();
   }
 
   // Verificar token
   const token = request.cookies.get('auth_token')?.value;
+
   if (!token) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
